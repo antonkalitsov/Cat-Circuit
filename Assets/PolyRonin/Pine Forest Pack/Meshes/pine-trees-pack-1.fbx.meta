@@ -1,7 +1,14 @@
 fileFormatVersion: 2
 guid: 38c88e570311a2141920c22be7f01df0
+AssetOrigin:
+  serializedVersion: 1
+  productId: 312113
+  packageName: Low Poly Pine Forest
+  packageVersion: 1.0
+  assetPath: Assets/PolyRonin/Pine Forest Pack/Meshes/pine-trees-pack-1.fbx
+  uploadId: 735462
 ModelImporter:
-  serializedVersion: 22200
+  serializedVersion: 24200
   internalIDToNameTable: []
   externalObjects:
   - first:
@@ -39,7 +46,7 @@ ModelImporter:
   meshes:
     lODScreenPercentages: []
     globalScale: 1
-    meshCompression: 0
+    meshCompression: 2
     addColliders: 0
     useSRGBMaterialColor: 1
     sortHierarchyByName: 1
@@ -61,6 +68,9 @@ ModelImporter:
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
     optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
@@ -110,10 +120,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 312113
-  packageName: Low Poly Pine Forest
-  packageVersion: 1.0
-  assetPath: Assets/PolyRonin/Pine Forest Pack/Meshes/pine-trees-pack-1.fbx
-  uploadId: 735462

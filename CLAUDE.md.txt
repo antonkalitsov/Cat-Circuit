@@ -87,6 +87,8 @@ Circuits + stages live in Editor/CatCircuitRecipes.cs.
 
 UPGRADE STATUS
 --------------
+2026-10-11 GitHub: README.md at the root (public-facing overview). Remote origin = https://github.com/antonkalitsov/Cat-Circuit.git
+(branch main, NOT pushed yet – owner pushes after deciding about Asset Store packs in a public repo). 'Claude outputs/' is git-ignored.
 2026-10-11 (thesis month 1, week 3): web size + FPS + House 1 tutorial. Local git repo created (no remote): commit 1 = snapshot
 before week 3, commit 2 = week 3. Editor/CatCircuitWebOptimize: CatCircuit ▸ Build ▸ Web size report (40 largest assets used by
 build scenes → Assets/_Game/CatCircuit_WebReport.txt) and ▸ Apply web optimizations (build-scene assets only: WebGL texture

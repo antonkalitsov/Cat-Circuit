@@ -1,0 +1,88 @@
+﻿CatCircuit – web size report  (2026-10-11 17:47)
+Assets used by the build-list scenes: 132
+Sizes are the SOURCE files on disk; the build size depends on the import settings shown.
+
+=== Changes made by 'Apply web optimizations'
+Textures (12):
+  Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_12_s.tga: WebGL max 1024 -> 1024, crunched, quality 50
+  Assets/Farland Skies/Low Poly/Textures/Sun/Sun_LP_01.png: WebGL max 512 -> 512, crunched, quality 50
+  Assets/Farland Skies/Low Poly/Textures/Sun/Sun_LP_05.png: WebGL max 512 -> 512, crunched, quality 50
+  Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_03_d.tga: WebGL max 1024 -> 1024, crunched, quality 50
+  Assets/Farland Skies/Low Poly/Textures/Stars/Stars_LP_01.png: WebGL max 2048 -> 1024, crunched, quality 50
+  Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_03_s.tga: WebGL max 1024 -> 1024, crunched, quality 50
+  Assets/Farland Skies/Low Poly/Textures/Moon/Moon_LP_01.png: WebGL max 512 -> 512, crunched, quality 50
+  Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_03_n.tga: WebGL max 1024 -> 1024, crunched, quality 50
+  Assets/Hand Painted Seamless Wood Texture/Textures/Wood3.tga: WebGL max 2048 -> 1024, crunched, quality 50
+  Assets/Farland Skies/Low Poly/Textures/Clouds/Clouds_LP_01.png: WebGL max 2048 -> 1024, crunched, quality 50
+  Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_12_n.tga: WebGL max 1024 -> 1024, crunched, quality 50
+  Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_12_d.tga: WebGL max 1024 -> 1024, crunched, quality 50
+Models (15):
+  Assets/_Game/textures/comp/NPC/npc1/NPC.obj: mesh compression Off -> Medium
+  Assets/_Game/textures/comp/resistor/100/resistor.obj: mesh compression Off -> Medium
+  Assets/_Game/textures/comp/LED/LED_OFF/LED_off.obj: mesh compression Off -> Medium
+  Assets/BrokenVector/LowPolyDungeon/Models/Tiles/Door_Basement_Left.fbx: mesh compression Off -> Medium
+  Assets/_Game/textures/comp/CHARACTER MAIN/characterFBX.fbx: mesh compression Off -> Medium
+  Packages/com.unity.render-pipelines.core/Runtime/RenderPipelineResources/Mesh/SamplesFloorSpotlight.fbx: mesh compression Off -> Medium
+  Assets/PolyRonin/Wooden House In The Snow/Meshes/winter-wooden-house-1.fbx: mesh compression Off -> Medium
+  Assets/_Game/textures/comp/resistor/resistor_texture.obj: mesh compression Off -> Medium
+  Assets/_Game/textures/comp/LED/LED_ON/LED.obj: mesh compression Off -> Medium
+  Assets/_Game/textures/comp/resistor/10K/resistor10K.obj: mesh compression Off -> Medium
+  Assets/PolyRonin/Pine Forest Pack/Meshes/pine-trees-pack-1.fbx: mesh compression Off -> Medium
+  Assets/_Game/textures/comp/CHARACTER MAIN/character.obj: mesh compression Off -> Medium
+  Assets/BrokenVector/LowPolyDungeon/Models/Furniture/Table_Big.fbx: mesh compression Off -> Medium
+  Assets/_Game/textures/comp/battery/Battery.obj: mesh compression Off -> Medium
+  Assets/_Game/textures/comp/resistor/1K/resistor1k.obj: mesh compression Off -> Medium
+Player settings:
+  Managed stripping Minimal -> Medium
+
+=== Player settings (WebGL)
+  Managed stripping: Medium
+  Strip engine code: True
+  Exceptions: ExplicitlyThrownExceptionsOnly
+  Compression: Gzip, decompression fallback True
+  Data caching: True
+  Unity splash screen: True (the Unity logo adds ~2.7 MB uncompressed)
+
+=== 40 largest assets
+12.00 MB  Texture2D      2048x2048 WebGL max 1024 AutomaticCompressed crunched Assets/Hand Painted Seamless Wood Texture/Textures/Wood3.tga
+ 7.37 MB  Cubemap        12288x2048 WebGL max 1024 AutomaticCompressed crunched Assets/Farland Skies/Low Poly/Textures/Stars/Stars_LP_01.png
+ 4.00 MB  Texture2D      1024x1024 WebGL max 1024 AutomaticCompressed crunched Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_12_s.tga
+ 4.00 MB  Texture2D      1024x1024 WebGL max 1024 AutomaticCompressed crunched Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_03_s.tga
+ 3.48 MB  GameObject     mesh compression Medium, readable False          Assets/PolyRonin/Pine Forest Pack/Meshes/pine-trees-pack-1.fbx
+ 3.00 MB  Texture2D      1024x1024 WebGL max 1024 AutomaticCompressed crunched Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_03_d.tga
+ 3.00 MB  Texture2D      1024x1024 WebGL max 1024 AutomaticCompressed crunched Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_03_n.tga
+ 3.00 MB  Texture2D      1024x1024 WebGL max 1024 AutomaticCompressed crunched Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_12_n.tga
+ 3.00 MB  Texture2D      1024x1024 WebGL max 1024 AutomaticCompressed crunched Assets/YughuesFreeFlooringMaterials/Textures/T_YFFlM_12_d.tga
+ 2.15 MB  TMP_FontAsset                                                   Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset
+ 0.70 MB  SceneAsset                                                      Assets/_Game/Scenes/Outside.unity
+ 0.68 MB  TMP_FontAsset                                                   Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset
+ 0.53 MB  TerrainData                                                     Assets/New Terrain.asset
+ 0.33 MB  Font                                                            Assets/TextMesh Pro/Fonts/LiberationSans.ttf
+ 0.32 MB  Cubemap        8192x6144 WebGL max 1024 AutomaticCompressed crunched Assets/Farland Skies/Low Poly/Textures/Clouds/Clouds_LP_01.png
+ 0.28 MB  GameObject     mesh compression Medium, readable False          Assets/PolyRonin/Wooden House In The Snow/Meshes/winter-wooden-house-1.fbx
+ 0.14 MB  SceneAsset                                                      Assets/_Game/Scenes/House4.unity
+ 0.12 MB  SceneAsset                                                      Assets/_Game/Scenes/House1.unity
+ 0.12 MB  SceneAsset                                                      Assets/_Game/Scenes/House3.unity
+ 0.12 MB  SceneAsset                                                      Assets/_Game/Scenes/House2.unity
+ 0.10 MB  Texture2D      128x128 default max 128 Uncompressed             Packages/com.unity.ugui/Editor Resources/Gizmos/TMP - Font Asset Icon.psd
+ 0.10 MB  SceneAsset                                                      Assets/_Game/Scenes/House5.unity
+ 0.09 MB  Texture2D      2048x2048 WebGL max 512 AutomaticCompressed crunched Assets/Farland Skies/Low Poly/Textures/Moon/Moon_LP_01.png
+ 0.09 MB  Texture2D      128x128 default max 128 Uncompressed             Packages/com.unity.ugui/Editor Resources/Gizmos/TMP - Text Component Icon.psd
+ 0.08 MB  GameObject     mesh compression Medium, readable False          Assets/_Game/textures/comp/resistor/10K/resistor10K.obj
+ 0.08 MB  GameObject     mesh compression Medium, readable False          Assets/_Game/textures/comp/resistor/1K/resistor1k.obj
+ 0.08 MB  GameObject     mesh compression Medium, readable False          Assets/_Game/textures/comp/resistor/100/resistor.obj
+ 0.07 MB  Texture2D      2048x2048 WebGL max 512 AutomaticCompressed crunched Assets/Farland Skies/Low Poly/Textures/Sun/Sun_LP_01.png
+ 0.06 MB  Texture2D      2048x2048 WebGL max 512 AutomaticCompressed crunched Assets/Farland Skies/Low Poly/Textures/Sun/Sun_LP_05.png
+ 0.05 MB  Texture2D      256x512 default max 512 Compressed               Assets/Farland Skies/Low Poly/Flares/SunFlare.png
+ 0.05 MB  GameObject     mesh compression Medium, readable False          Assets/BrokenVector/LowPolyDungeon/Models/Tiles/Door_Basement_Left.fbx
+ 0.04 MB  GameObject     mesh compression Medium, readable False          Assets/_Game/textures/comp/resistor/resistor_texture.obj
+ 0.04 MB  Texture2D      256x512 default max 512 Compressed               Assets/Farland Skies/Low Poly/Flares/MoonFlare.png
+ 0.04 MB  InputActionAsset                                                  Assets/InputSystem_Actions.inputactions
+ 0.04 MB  GameObject     mesh compression Off, readable False             Packages/com.unity.render-pipelines.core/Runtime/RenderPipelineResources/Mesh/SamplesFloorSpotlight.fbx
+ 0.04 MB  GameObject     mesh compression Medium, readable False          Assets/_Game/textures/comp/CHARACTER MAIN/characterFBX.fbx
+ 0.03 MB  LensFlareDataSRP                                                  Packages/com.unity.render-pipelines.core/Runtime/RenderPipelineResources/Default Lens Flare (SRP).asset
+ 0.03 MB  InputActionAsset                                                  Packages/com.unity.inputsystem/InputSystem/Plugins/PlayerInput/DefaultInputActions.inputactions
+ 0.03 MB  GameObject     mesh compression Medium, readable False          Assets/BrokenVector/LowPolyDungeon/Models/Furniture/Table_Big.fbx
+ 0.02 MB  GameObject                                                      Assets/_Game/prefabs/Environment/House_Interior.prefab
+
+Total source size of used assets: 49.98 MB

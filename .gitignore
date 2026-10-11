@@ -39,3 +39,6 @@
 crashlytics-build.properties
 .DS_Store
 Thumbs.db
+
+# Local backups / scratch made while working with Claude
+/Claude outputs/

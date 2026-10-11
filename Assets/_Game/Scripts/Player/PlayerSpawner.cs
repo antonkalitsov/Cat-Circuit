@@ -1,0 +1,67 @@
+using UnityEngine;
+
+/// <summary>
+/// One per scene. Moves the player to the right place when the scene loads
+/// (see <see cref="SceneTransition"/> for the rules).
+/// </summary>
+public class PlayerSpawner : MonoBehaviour
+{
+    [Header("Default Spawn (if nothing else applies)")]
+    [SerializeField] private Vector3 defaultSpawnPosition = Vector3.zero;
+
+    private void Start()
+    {
+        GameObject player = FindPlayer();
+        if (player == null)
+        {
+            Debug.LogWarning("[PlayerSpawner] No player found (tag 'Player' or a PlayerCarry component).");
+            return;
+        }
+
+        Vector3 position = defaultSpawnPosition;
+        Quaternion? rotation = null;
+
+        if (PlayerPositionStore.TryConsumeSpawn(out Vector3 stored))
+        {
+            position = stored;
+        }
+        else
+        {
+            SceneTransition backDoor = FindDoorTo(PlayerPositionStore.cameFromScene);
+            if (backDoor != null && backDoor.ArrivalPoint != null)
+            {
+                position = backDoor.ArrivalPoint.position;
+                rotation = backDoor.ArrivalPoint.rotation;
+            }
+        }
+
+        // A CharacterController overrides transform changes while enabled.
+        var cc = player.GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = false;
+        player.transform.position = position;
+        if (rotation.HasValue) player.transform.rotation = Quaternion.Euler(0f, rotation.Value.eulerAngles.y, 0f);
+        if (cc != null) cc.enabled = true;
+    }
+
+    private static GameObject FindPlayer()
+    {
+        GameObject tagged = GameObject.FindGameObjectWithTag("Player");
+        if (tagged != null) return tagged;
+        PlayerCarry carry = FindAnyObjectByType<PlayerCarry>();
+        return carry != null ? carry.gameObject : null;
+    }
+
+    private static SceneTransition FindDoorTo(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName)) return null;
+        foreach (SceneTransition door in FindObjectsByType<SceneTransition>(FindObjectsSortMode.None))
+            if (door.TargetSceneName == sceneName) return door;
+        return null;
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(defaultSpawnPosition, 0.5f);
+    }
+}

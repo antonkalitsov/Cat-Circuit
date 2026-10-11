@@ -1,0 +1,151 @@
+CatCircuit upgrade – STEP 1 – organize script files – 9/23/2026 9:06:07 PM
+  Assets/_Game/Scripts/GameProgress.cs  →  Assets/_Game/Scripts/Core/GameProgress.cs
+  Assets/_Game/Scripts/UIManager.cs  →  Assets/_Game/Scripts/Core/UIManager.cs
+  Assets/_Game/Scripts/Player.cs  →  Assets/_Game/Scripts/Player/Player.cs
+  Assets/_Game/Scripts/PlayerSpawner.cs  →  Assets/_Game/Scripts/Player/PlayerSpawner.cs
+  Assets/_Game/Scripts/PlayerPositionStore.cs  →  Assets/_Game/Scripts/Player/PlayerPositionStore.cs
+  Assets/_Game/Scripts/items/PlayerCarry.cs  →  Assets/_Game/Scripts/Player/PlayerCarry.cs
+  Assets/_Game/Scripts/SceneTransition.cs  →  Assets/_Game/Scripts/Interaction/SceneTransition.cs
+  Assets/_Game/Scripts/items/PickupableItem.cs  →  Assets/_Game/Scripts/Interaction/PickupableItem.cs
+  Assets/_Game/Scripts/items/PickupTrigger.cs  →  Assets/_Game/Scripts/Interaction/PickupTrigger.cs
+  Assets/_Game/Scripts/items/ComponentData.cs  →  Assets/_Game/Scripts/Circuit/ComponentData.cs
+  Assets/_Game/Scripts/QuestData.cs  →  Assets/_Game/Scripts/Legacy/QuestData.cs
+  Assets/_Game/Scripts/house4/SeriesQuestManager.cs  →  Assets/_Game/Scripts/Legacy/SeriesQuestManager.cs
+  Assets/_Game/Scripts/house4/SeriesParallelLED.cs  →  Assets/_Game/Scripts/Legacy/SeriesParallelLED.cs
+  Assets/_Game/Scripts/items/LED_Brightness.cs  →  Assets/_Game/Scripts/Legacy/LEDBrightness.cs
+  Assets/_Game/Scripts/Breadboard/resistor_slot.cs  →  Assets/_Game/Scripts/Legacy/ResistorSlot.cs
+  Assets/_Game/Scripts/items/TestLED.cs  →  Assets/_Game/Scripts/Legacy/TestLED.cs
+  Assets/_Game/Scripts/items/InteractionGuard.cs  →  Assets/_Game/Scripts/Legacy/InteractionGuard.cs
+  deleted empty folder Assets/_Game/Scripts/items
+  deleted empty folder Assets/_Game/Scripts/house4
+
+CatCircuit upgrade – STEP 2 – upgrade scenes – 9/23/2026 9:06:32 PM
+
+=== Assets/_Game/Scenes/Outside.unity
+  NPC 'Спарки': info NPC, unlocked after puzzle 3.
+
+=== Assets/_Game/Scenes/House1.unity
+  Indicator LED 'L1': off='LED_OFF', on='LED_ON'.
+  Quest NPC: 'Professor Whiskers'.
+  removed OnCircuitComplete listener #3 (NPC.CompleteQuest)
+  removed OnCircuitComplete listener #2 (Breadboard.set_name)
+  removed OnCircuitComplete listener #1 (LED_ON_PREFAV.SetActive)
+  removed OnCircuitComplete listener #0 (LED_OFF Variant.SetActive)
+  removed OnCircuitIncomplete listener #1 (LED_ON_PREFAV.SetActive)
+  removed OnCircuitIncomplete listener #0 (LED_OFF Variant.SetActive)
+  Board 'CircuitPuzzle' → closed circuit puzzle #1.
+      # Upgraded automatically from the old puzzle – edit freely.
+      led L1 red           # the LED model on the table
+      slot S1              # Battery Slot
+      slot S2              # Resistor Slot
+      
+      X -> S1 -> S2 -> L1 -> X
+      
+  removed OnQuestCompleted listener #0 (QuestData.set_name)
+
+=== Assets/_Game/Scenes/House2.unity
+  Indicator LED 'S1': off='LED_OFF Variant', on='LED_ON_PREFAV'.
+  Quest NPC: 'Г-жа Пурингтън'.
+  removed OnCircuitComplete listener #2 (NPC.CompleteQuest)
+  removed OnCircuitComplete listener #1 (LED_ON_PREFAV.SetActive)
+  removed OnCircuitComplete listener #0 (LED_OFF Variant.SetActive)
+  removed OnCircuitIncomplete listener #1 (LED_ON_PREFAV.SetActive)
+  removed OnCircuitIncomplete listener #0 (LED_OFF Variant.SetActive)
+  Board 'CircuitPuzzle' → polarity puzzle #2.
+      # Upgraded automatically from the old puzzle – edit freely.
+      battery B 9V
+      resistor R1 330      # built into the board
+      slot S1              # LED SLOT
+      
+      B+ -> R1 -> S1 -> B-
+      
+  removed OnQuestCompleted listener #0 (QuestData.set_name)
+
+=== Assets/_Game/Scenes/House3.unity
+  LED L1 = 'LED_OFF Variant (1)'
+  LED L2 = 'LED_OFF Variant (2)'
+  LED L3 = 'LED_OFF Variant (3)'
+  Quest NPC: 'Старият Том'.
+  removed OnCircuitComplete listener #0 (null.CompletePuzzle3)
+  Board 'CircuitPuzzle' → resistor puzzle #3.
+  removed OnQuestCompleted listener #0 (QuestData.set_name)
+  removed ResistorSlot on 'Slot_A'
+  removed LEDBrightness on 'LED_OFF Variant (2)'
+  removed LEDBrightness on 'LED_OFF Variant (3)'
+  removed LEDBrightness on 'LED_OFF Variant (1)'
+
+=== Assets/_Game/Scenes/House4.unity
+  Quest NPC: 'Котета'.
+  removed OnCircuitComplete listener #0 (null.CompletePuzzle3)
+  Board 'CircuitPuzzle' → series/parallel puzzle (2 stages).
+  removed OnQuestCompleted listener #0 (QuestData.set_name)
+  removed ResistorSlot on 'Slot_5'
+  removed ResistorSlot on 'Slot_3'
+  removed ResistorSlot on 'Slot_1'
+  removed ResistorSlot on 'Slot_4'
+  removed ResistorSlot on 'Slot_2'
+  disabled SeriesParallelLED on 'LED_OFF_updated (2)' (belongs to a prefab – cleaned by step 3)
+  disabled SeriesParallelLED on 'LED_OFF_updated' (belongs to a prefab – cleaned by step 3)
+  disabled SeriesParallelLED on 'LED_OFF_updated (1)' (belongs to a prefab – cleaned by step 3)
+  removed SeriesQuestManager on 'CircuitPuzzle'
+
+CatCircuit upgrade – STEP 3 – prefabs & data – 9/23/2026 9:07:38 PM
+  Battery_Data: Battery (Battery 9V)
+  LED_Data: LED (LED)
+  Resistor_1k_Data: Resistor (Resistor 1kΩ)
+  Resistor_10k_Data: Resistor (Resistor 10kΩ)
+  Resistor_100_Data: Resistor (Resistor 100Ω)
+  Resistor_Data: Resistor (Resistor 330Ω)
+  removed SeriesParallelLED on 'LED_OFF_updated'
+  cleaned Assets/_Game/prefabs/LED_OFF_updated.prefab
+  Assets/_Game/prefabs/Battery.prefab  →  Assets/_Game/prefabs/Parts/Part_Battery.prefab
+  Assets/_Game/prefabs/LED_OFF_updated.prefab  →  Assets/_Game/prefabs/Parts/Part_LED.prefab
+  Assets/_Game/prefabs/resistor_texture.prefab  →  Assets/_Game/prefabs/Parts/Part_Resistor_330.prefab
+  Assets/_Game/prefabs/resistor100.prefab  →  Assets/_Game/prefabs/Parts/Part_Resistor_100.prefab
+  Assets/_Game/prefabs/resistor1k.prefab  →  Assets/_Game/prefabs/Parts/Part_Resistor_1k.prefab
+  Assets/_Game/prefabs/resistor10K.prefab  →  Assets/_Game/prefabs/Parts/Part_Resistor_10k.prefab
+  Assets/_Game/prefabs/LED_off.prefab  →  Assets/_Game/prefabs/Models/Model_LED_Off.prefab
+  Assets/_Game/prefabs/LED_ON_PREFAV.prefab  →  Assets/_Game/prefabs/Models/Model_LED_On.prefab
+  Assets/_Game/prefabs/LED_OFF Variant.prefab  →  Assets/_Game/prefabs/Models/Deco_LED_Indicator.prefab
+  Assets/_Game/prefabs/board.prefab  →  Assets/_Game/prefabs/Board/Board_TwoSlots.prefab
+  Assets/_Game/prefabs/Slot_A.prefab  →  Assets/_Game/prefabs/Board/Slot.prefab
+  Assets/_Game/prefabs/wire.prefab  →  Assets/_Game/prefabs/Board/Deco_Wire.prefab
+  Assets/_Game/prefabs/character.prefab  →  Assets/_Game/prefabs/Characters/Player_Cat.prefab
+  Assets/_Game/prefabs/NPC.prefab  →  Assets/_Game/prefabs/Characters/NPC_Cat.prefab
+  Assets/_Game/prefabs/house.prefab  →  Assets/_Game/prefabs/Environment/House_Interior.prefab
+  Assets/_Game/prefabs/100  →  Assets/_Game/textures/comp/resistor/100
+  Assets/_Game/prefabs/1K  →  Assets/_Game/textures/comp/resistor/1K
+  Assets/_Game/prefabs/10K  →  Assets/_Game/textures/comp/resistor/10K
+
+CatCircuit upgrade – STEP 4 – delete unused legacy scripts – 9/23/2026 9:07:53 PM
+  deleted Assets/_Game/Scripts/Legacy/InteractionGuard.cs
+  deleted Assets/_Game/Scripts/Legacy/LEDBrightness.cs
+  deleted Assets/_Game/Scripts/Legacy/ResistorSlot.cs
+  deleted Assets/_Game/Scripts/Legacy/SeriesParallelLED.cs
+  deleted Assets/_Game/Scripts/Legacy/SeriesQuestManager.cs
+  deleted Assets/_Game/Scripts/Legacy/TestLED.cs
+
+CatCircuit upgrade – STEP 5 – pickups + sparkles – 9/23/2026 9:28:32 PM
+
+=== Assets/_Game/Scenes/Outside.unity
+
+=== Assets/_Game/Scenes/House1.unity
+  sparkles enabled on puzzle 'CircuitPuzzle'.
+
+=== Assets/_Game/Scenes/House2.unity
+  'LED_OFF Variant' is a pickup again (it was wrongly used as the 'LED off' model).
+  disabled the on/off LED swap for slot 'S1' – the placed LED glows itself.
+  'Battery' (Battery) is decoration now – the circuit already has one.
+  'resistor_texture' (Resistor) is decoration now – the circuit already has one.
+  sparkles enabled on puzzle 'CircuitPuzzle'.
+
+=== Assets/_Game/Scenes/House3.unity
+  'LED_OFF Variant (4)' (LED) is decoration now – the circuit already has one.
+  sparkles enabled on puzzle 'CircuitPuzzle'.
+
+=== Assets/_Game/Scenes/House4.unity
+  sparkles enabled on puzzle 'CircuitPuzzle'.
+
+=== Assets/_Game/Scenes/House5.unity
+  sparkles enabled on puzzle 'Build Area'.
+

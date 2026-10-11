@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a3b1e75c5c693241be3fc12ada25972, type: 3}
+  m_Name: LED_Data
+  m_EditorClassIdentifier: Assembly-CSharp::ComponentData
+  componentName: LED
+  description: A basic electronic component.
+  worldPrefab: {fileID: 5352748199836637928, guid: 2b36f0c384de53a4089540ca21500310, type: 3}
+  uiIcon: {fileID: 0}
+  componentColor: {r: 1, g: 0, b: 0, a: 1}
+  electricalKind: 3
+  type: 4
+  resistanceValue: 0
+  voltage: 9
+  ledColor: 0
+  defaultSlotRotation: {x: 0, y: 0, z: 0}
+  slotPositionOffset: {x: 0, y: -0.2, z: 0}
+  correctPlacementYRotation: -1

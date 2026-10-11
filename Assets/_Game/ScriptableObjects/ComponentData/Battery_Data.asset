@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a3b1e75c5c693241be3fc12ada25972, type: 3}
+  m_Name: Battery_Data
+  m_EditorClassIdentifier: Assembly-CSharp::ComponentData
+  componentName: Battery
+  description: A basic electronic component.
+  worldPrefab: {fileID: 1832040656592278571, guid: 48c4eff0fbcd2344b8f6b24de5a5e8ef, type: 3}
+  uiIcon: {fileID: 0}
+  componentColor: {r: 1, g: 0.98929787, b: 0, a: 1}
+  electricalKind: 1
+  type: 0
+  resistanceValue: 0
+  voltage: 9
+  ledColor: 0
+  defaultSlotRotation: {x: 90, y: 90, z: 0}
+  slotPositionOffset: {x: 0, y: 0.3, z: 0}
+  correctPlacementYRotation: -1

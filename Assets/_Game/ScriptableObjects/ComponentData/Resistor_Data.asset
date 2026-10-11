@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a3b1e75c5c693241be3fc12ada25972, type: 3}
+  m_Name: Resistor_Data
+  m_EditorClassIdentifier: Assembly-CSharp::ComponentData
+  componentName: Resistor
+  description: A basic electronic component.
+  worldPrefab: {fileID: 5021693018805166724, guid: 4ead28624989b0b40978566179725f88, type: 3}
+  uiIcon: {fileID: 0}
+  componentColor: {r: 0.6037736, g: 0.22446492, b: 0, a: 1}
+  electricalKind: 2
+  type: 1
+  resistanceValue: 330
+  voltage: 9
+  ledColor: 0
+  defaultSlotRotation: {x: 0, y: 0, z: 0}
+  slotPositionOffset: {x: 0, y: -0.3, z: 0}
+  correctPlacementYRotation: 0

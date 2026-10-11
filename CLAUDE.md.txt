@@ -87,6 +87,17 @@ Circuits + stages live in Editor/CatCircuitRecipes.cs.
 
 UPGRADE STATUS
 --------------
+2026-10-11 (thesis month 1, week 3): web size + FPS + House 1 tutorial. Local git repo created (no remote): commit 1 = snapshot
+before week 3, commit 2 = week 3. Editor/CatCircuitWebOptimize: CatCircuit ▸ Build ▸ Web size report (40 largest assets used by
+build scenes → Assets/_Game/CatCircuit_WebReport.txt) and ▸ Apply web optimizations (build-scene assets only: WebGL texture
+override max 1024 [2048 kept only for >2048 terrain/atlas], crunched q50, skips UI/sprite/lightmap and <1024 textures; models
+meshCompression Medium; WebGL stripping Medium, strip engine code, explicitly thrown exceptions only, Gzip+fallback, caching).
+Asks first, safe to run twice. Biggest web items found: Farland skybox cubemaps Stars_LP_01 / Clouds_LP_01 (~12 MB each),
+2048 wood/floor textures, Unity splash logo (2.7 MB), URP shaders/post textures. WebGL static batching was already off.
+Core/FpsCounter (F3, bottom-left). Core/Tutorial: House1 only, no scene edits, PlayerPrefs 'cc_tutorial_done'; steps move →
+talk (CatNPC.QuestAccepted; new CatNPC.IsTalking hides the box during dialogue) → hold part → place (PlayerCarry.OnItemPlacedDown)
+→ "put all parts" (ends on puzzle StageCompleted or 8 s); Tab skips; telemetry tutorial_step / tutorial_skip.
+Editor: CatCircuit ▸ Reset tutorial and first-start hints.
 2026-10-11 (thesis month 1, week 2): telemetry + teacher unlock (pre/post test dropped by the user). Core/Telemetry
 (+ TelemetryConfig.FormUrl / FieldEntry, both EMPTY = only Console '[Telemetry] ...'; also never sends from the editor).
 Telemetry.Log(type, detail, puzzle); batch header = anon player id (PlayerPrefs 'cc_player_id'), session id, version, platform;
@@ -155,5 +166,6 @@ Outside (index 0, village, Sparky, doors) | House1..House4 | House5 (created by 
 
 WHAT'S LEFT
 -----------
-Set TelemetryConfig (Google Form) + change teacher code (High) | Web size/speed budget (High) | House 1 tutorial prompts (Medium)
+Run Web size report → Apply web optimizations → Build Web, compare size (High) | Test House 1 tutorial (High)
+| Set TelemetryConfig (Google Form) + change teacher code (High) | Optional: turn off Unity splash (-2.7 MB)
 | Audio (Medium) | Lighting polish (Medium) | NPC models incl. Mayor (Low)

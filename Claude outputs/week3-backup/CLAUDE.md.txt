@@ -1,0 +1,159 @@
+CatCircuit — Project Context for Claude
+========================================
+(Rewritten 2026-09-23 after the "scalable / plug-and-play" refactor. Programmer guide: Assets/_Game/README_CatCircuit.md)
+
+PROJECT OVERVIEW
+----------------
+Name: CatCircuit (Котаракът електротехник)
+Genre: Educational 3D third-person puzzle game about simple electronics, for 8th graders
+Engine: Unity 6.3, URP, New Input System, Cinemachine 3, TextMeshPro
+Language: Bulgarian (dialogue, UI – all short UI strings are in Core/UIText.cs)
+Target: PC demo for "Night of the Scientists"
+
+Premise: a cat in a village of cats solves electronics puzzles by placing oversized parts (battery,
+resistor, LED) into breadboard slots, and in House 5 by WRITING the circuit as code.
+
+
+CRITICAL TECHNICAL RULES
+------------------------
+1. New Input System only (Keyboard.current...), never Input.GetKeyDown.
+2. Keys: WASD move, Space jump, E interact, Q drop, R rotate. Keys are routed ONLY by PlayerInteractor
+   (one action per press). Do not poll E/R/Q in other scripts – inherit CatInteractable instead.
+3. MonoBehaviour class name must equal file name (old LED_Brightness.cs / resistor_slot.cs broke this).
+4. Never break Houses 1–4. Test all houses after changing BreadboardSlot, PickupableItem, CatNPC, CircuitHost.
+5. Serialized field names matter (scenes store them). Rename with [FormerlySerializedAs].
+6. Awake() for init on scripts that may start disabled. Static batching OFF on moving objects.
+7. worldPrefab of ComponentData = the PREFAB (with PickupableItem), never the .obj.
+8. Editor tools must not create materials in edit mode (LEDLight.Init is play-mode only).
+9. No compiler in the cloud sandbox: compile-check with PowerShell/Roslyn + Unity API stubs (see "Checking code").
+
+
+ARCHITECTURE (after refactor)
+-----------------------------
+Scripts/
+  Core/        GameProgress (auto-creates itself, list of solved puzzle ids), UIManager (+ static GameUI:
+               Prompt / Dialogue / Toast / Objective / HeldItem), UIText (strings), GameInput (Block/Unblock)
+  Player/      Player (movement, stops when GameInput.IsBlocked), PlayerCarry (mouth, holds the REAL object),
+               PlayerInteractor (auto-added; chooses one focus: priority then distance; E/R/Q),
+               PlayerSpawner, PlayerPositionStore
+  Interaction/ CatInteractable (base: GetPrompt/Interact/TryRotate; auto trigger), PickupableItem (World/Held/Placed
+               states, auto colliders), PickupTrigger (child trigger forwarder), SceneTransition (door, arrivalPoint,
+               blocks leaving while carrying)
+  Circuit/     ComponentData (electricalKind, resistanceValue, voltage, ledColor, slot rotation/offset),
+               CircuitCore (types, constants, units), CircuitScript (language parser), CircuitSolver (nodal
+               analysis, piecewise LEDs), CircuitHost (base: MarkDirty → solve in LateUpdate → Solved event,
+               drives LEDLights), LEDLight (Emission+glow light or SwapObjects; bound by Element Id)
+  Breadboard/  Breadboard : CircuitHost (circuit TEXT + slots), BreadboardSlot : CatInteractable
+               (Slot Id, requireOrientation/correctRotationY/rotationStep, acceptOnly, startsWith, locked)
+  Puzzles/     CircuitPuzzle (stages → conditions → success msg → NPC dialogue; progressId → GameProgress;
+               restores solved state from GameProgress), CircuitConditions (ConditionType enum, CircuitHint, PuzzleStage)
+  NPC/         CatNPC : CatInteractable (quest NPC = has Puzzle; info NPC = unlockedAfterPuzzle + unlockedDialogue)
+  CodeCircuit/ CodeCircuitBuilder : CircuitHost (code → floor layout + wires + simulation), CodeTerminal (IMGUI
+               editor, Ctrl+Enter/Esc), CircuitSwitch (E toggles switches built from code)
+  Editor/      CatCircuitUpgrade (menu CatCircuit ▸ Upgrade 1-4), CatCircuitCreate (GameObject ▸ CatCircuit ▸ ...,
+               House 5 scene), CatCircuitValidator, CircuitInspectors, CatCircuitRecipes (all house circuits/stages)
+  Legacy/      QuestData + old scripts kept only for the upgrade (step 4 deletes unused ones)
+
+Slot/placement: slot.PlaceItem parents the real object at data.slotPositionOffset, rotation
+(defaultSlotRotation.x, rotY, .z), scale = worldPrefab.localScale; rotY starts at defaultSlotRotation.y + held rotation.
+Seating: rot ≈ correct → forward, ≈ correct+180 → reversed, else not seated (open).
+
+
+CIRCUIT LANGUAGE (CircuitScript)
+--------------------------------
+battery B 9V | resistor R1 220 (1k, 4.7k, 2k2) | led L1 red | switch S1 on/off | wire W1 | slot S1 [wire] (boards only)
+Chains: B+ -> R1 -> L1 -> B-   (arrow = current direction; battery in at -, out at +; LED in at + anode)
+Junction names make parallel branches. Each part in the middle of only one chain; use R1+/R1- for extra wires.
+Bulgarian keywords accepted. Errors/warnings are Bulgarian with line numbers.
+
+Physics constants (CircuitConstants): full brightness 20 mA, LED burns > 30 mA, lit > 0.3 mA,
+battery Rint 0.5 Ω, wire 0.01 Ω, LED on-resistance 15 Ω, Vf red 1.8 / green 2.2 / blue 3.0, short > 1 A.
+
+
+PUZZLES
+-------
+1 House1 Professor Whiskers – closed circuit. "X -> S1 -> S2 -> L1 -> X" (battery + resistor slots), L1 = swap LED.
+2 House2 Ms. Purrington – LED polarity. "B+ -> R1 -> S1 -> B-", slot requireOrientation, correct 180°, step 90°
+  (LED starts reversed; hint "обърнат"). Indicator = swap LED id S1.
+3 House3 Old Tom – Ohm's law. 12V, "B+ -> SR -> L1 -> L2 -> L3 -> B-". Goal 3–25 mA: 1kΩ = 6.3 mA ✓,
+  100Ω = 45 mA (burns, hint "too bright"), 10kΩ = 0.7 mA (hint "too dark"). Sparky (Outside) = info NPC unlocked by puzzle 3.
+4 House4 Kittens – series vs parallel. 6V, top row S1-S3 "slot wire" in series with R1 200Ω; S4/S5 own branches.
+  Series LEDs are EQUALLY dim (1 LED 97 %, 2 → 52 %, 3 → 12 %), parallel 97 %. Stage 1 = S1-S3 lit, stage 2 = S4,S5 + one top lit.
+5 House5 Mayor Fluffington – CODE puzzle (created by CatCircuit ▸ Create ▸ House 5 from a copy of House2):
+  stage 1 any LED lit without burning, stage 2 two LEDs lit with a ≤3V battery (forces parallel),
+  stage 3 a switch that turns ALL LEDs off. progressId 5.
+Circuits + stages live in Editor/CatCircuitRecipes.cs.
+
+
+UPGRADE STATUS
+--------------
+2026-10-11 (thesis month 1, week 2): telemetry + teacher unlock (pre/post test dropped by the user). Core/Telemetry
+(+ TelemetryConfig.FormUrl / FieldEntry, both EMPTY = only Console '[Telemetry] ...'; also never sends from the editor).
+Telemetry.Log(type, detail, puzzle); batch header = anon player id (PlayerPrefs 'cc_player_id'), session id, version, platform;
+POST as JSON lines in one WWWForm field, max 100/request, queue cap 500, flush on puzzle complete / every 20 s / menu open /
+app pause or focus loss. Hooks: CircuitPuzzle.OnEnable (Telemetry.CurrentPuzzle), Evaluate (hint_shown), CompleteCurrentStage
+(puzzle_stage_complete, puzzle_complete); CircuitHost.SolveNow (short_circuit, led_burn on state start); BreadboardSlot.Interact
+(slot_place, player only); CodeTerminal.RunBuild/LogBuild (code_build: ok/error, error count, code length, first error LINE only – no code, no error text); PauseMenu.BeginGame (menu_new_game /
+menu_continue), TeacherJump (teacher_jump); session_start + scene_enter in Telemetry itself. Opt-out: GameSettings.Telemetry
+('cc_telemetry', default on) = Настройки ▸ Анонимна статистика; title menu shows a grey notice line.
+Teacher: F9 on the title menu → "Код за учител" box, code = PauseMenu.TeacherCode ("teacher" – change it). Correct code =
+PauseMenu.TeacherMode for this session only → buttons Къща 1-5 / Селото load the scene directly (StartSession(true), save untouched).
+2026-10-11 (thesis month 1, week 1): save + title menu. Core/GameSave (PlayerPrefs 'cc_progress' = solved puzzle ids, works on web),
+GameProgress now writes every solved puzzle to the save and has StartSession(continue) (menu calls it; starting a scene directly in the
+editor does NOT load the save). PauseMenu doubles as the TITLE menu (shows once when the game starts in the village: Продължи (n/5),
+Нова игра (asks before wiping a save), Управление, Настройки, Кредити, Изход; pause menu got 'Главно меню'). Start/Continue reload the
+village. Core/ControlsHint = one-time 'Как се играе' card (PlayerPrefs 'cc_controls_seen'). UIText.ControlRows is the shared key list.
+Editor: CatCircuit > Show main menu in Play Mode (toggle), CatCircuit > Reset saved progress. House 5 door in Outside already existed.
+2026-09-23 (4th round): UIManager "Corner layout" pins held item top-left, objective top-right. Builds:
+Core/UIFonts (IMGUI font; web needs Resources/CatCircuitUIFont.ttf, no OS fonts in browsers), PauseMenu hides Quit
+on WEBGL, Editor/CatCircuitBuild (CatCircuit ▸ Build ▸ Prepare / Build Windows / Build Web; keep-materials in
+Resources/ShaderKeep for runtime-created URP materials; Gzip + decompressionFallback). README §11.
+2026-09-23 (3rd round): user built House 5 + fixed exit spawn points. Added: Core/TextBackdrop (rounded dark box
+behind prompt/dialogue/objective/held texts, auto-added by UIManager), Core/GameAudio + SoundSynth (all SFX
+synthesized, Sfx enum, optional Resources/CatCircuitSounds SoundLibrary + music), Core/GameSettings (PlayerPrefs),
+Core/UIFocus (Push/Pop: block input, free cursor, pause Cinemachine input), Core/PauseMenu (IMGUI, Esc, auto-bootstrap,
+timeScale 0). Sounds hooked in PlayerCarry, BreadboardSlot, CircuitPuzzle, CatNPC, SceneTransition, CircuitSwitch,
+CodeTerminal, CircuitHost (zap on new short/burn). Output folder now mirrors device Scripts/ layout exactly.
+2026-09-23 (2nd round): user ran steps 1-4 + House 5. Puzzle 1 worked; pickups failed in 2/3/4 because a solid
+collider was added over the models' tiny trigger boxes. Fixed: PickupableItem ALWAYS adds a 1.5 m sphere trigger,
+solid collider only created when dropped. New step 5 (Apply fixes): House 2 "LED off" model was really the pickup LED
+(re-enabled, swap LEDLight disabled); parts the circuit already contains become decoration; sparkles on all puzzles
+(ElectricSparkle, Materials/Spark_Additive.mat). Code builder: breadboard base, 3D box wires, models sit on the board.
+
+Scripts rewritten 2026-09-23. The user must run in Unity: CatCircuit ▸ Upgrade 1 → (recompile) → 2 → 3 → 4,
+then Create ▸ House 5, then Validate every scene. Reports: Assets/_Game/CatCircuit_UpgradeReport.txt.
+Manual after upgrade: add a door to House5 in Outside; optional Arrival Points on Outside doors; Mayor model.
+Unused board-prefab slots (e.g. Slot_B in House2/House4) are reported, not deleted.
+
+
+CHECKING CODE (cloud sandbox)
+-----------------------------
+No dotnet/mono via apt. Download PowerShell 7 from GitHub releases (ships Microsoft.CodeAnalysis.CSharp.dll),
+compile all Scripts with C# 9 against hand-written UnityEngine/UnityEditor/TMPro/InputSystem stubs
+(once without and once with UNITY_EDITOR). Engine files (CircuitCore/Script/Solver) can be run for real with
+tiny Mathf/Color stubs to test circuits.
+
+
+DIALOGUE GUIDELINES
+-------------------
+- Bulgarian, short sentences — maximum 2 lines per element; friendly, child-appropriate, explain jargon
+- Personalities: Professor Whiskers warm/scatterbrained; Ms. Purrington cheerful; Old Tom wise/practical;
+  Kittens energetic/chaotic; Sparky nerdy/loves math; Mayor Fluffington formal/proud
+- Physics must be correct (e.g. series LEDs share the same current → equally bright)
+
+DIALOGUE FLOW (CatNPC with Puzzle)
+1. E → greetingDialogue lines → quest accepted → objective = current stage objective
+2. Stage solved → toast successMessage, objective "Говори с X!"
+3. Talk → that stage's completeDialogue → objective = next stage (or cleared)
+4. Walking away cancels a conversation. Returning to a solved house restores it as solved (GameProgress).
+
+
+SCENES
+------
+Outside (index 0, village, Sparky, doors) | House1..House4 | House5 (created by tool). Doors need scenes in build list.
+
+
+WHAT'S LEFT
+-----------
+Set TelemetryConfig (Google Form) + change teacher code (High) | Web size/speed budget (High) | House 1 tutorial prompts (Medium)
+| Audio (Medium) | Lighting polish (Medium) | NPC models incl. Mayor (Low)

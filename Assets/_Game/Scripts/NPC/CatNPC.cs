@@ -53,6 +53,8 @@ public class CatNPC : CatInteractable
     public string NpcName => npcName;
     public CircuitPuzzle Puzzle => puzzle;
     public bool QuestAccepted => questAccepted;
+    /// <summary>True while a conversation with this NPC is on screen.</summary>
+    public bool IsTalking => activeLines != null;
 
     // ------------------------------------------------------------------ setup
 

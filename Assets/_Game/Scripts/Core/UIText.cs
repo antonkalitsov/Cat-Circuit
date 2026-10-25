@@ -25,6 +25,10 @@ namespace CatCircuit
         public static string ToggleSwitch(string id, bool closed) => $"{KeyInteract} {(closed ? "Изключи" : "Включи")} ключ {id}";
         public static string TalkTo(string npc) => $"Говори с {npc}!";
         public const string SceneMissing = "Тази врата още не води никъде.";
+        public const string GuideName = "Дядо Ампер";
+        public const string TalkToGuide = "Говори с " + GuideName;
+        public const string AllHousesDone = "Всички къщи са готови! Говори с " + GuideName + ".";
+        public static string NextHouse(int house, string title) => $"Следваща: Къща {house} – {title}";
 
         /// <summary>Key + what it does. Shown on the controls page and in the first-start hint.</summary>
         public static readonly string[][] ControlRows =

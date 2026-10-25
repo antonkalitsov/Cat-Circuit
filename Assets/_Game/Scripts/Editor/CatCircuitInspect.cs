@@ -109,6 +109,7 @@ namespace CatCircuit.EditorTools
                 "battery B 9V\nresistor R1 330\nled L1 red\nB+ -> R1 -> L1 -> B-",
                 "battery B 3V\nresistor R1 68\nresistor R2 68\nled L1 red\nled L2 red\nB+ -> R1 -> L1 -> B-\nB+ -> R2 -> L2 -> B-",
                 "battery B 3V\nswitch S1 on\nresistor R1 68\nresistor R2 68\nled L1 red\nled L2 red\nB+ -> S1 -> A\nA -> R1 -> L1 -> B-\nA -> R2 -> L2 -> B-",
+                "# Голямата верига на кмета – тест за компютъра\n# 9V батерия, главен ключ и три успоредни клона\n\nbattery B 9V\nswitch S1 on          # главен ключ – гаси всичко\nswitch S2 on          # ключ само за синия клон\n\nresistor R1 330\nresistor R2 150\nresistor R3 470\nresistor R4 1k\nled L1 red\nled L2 green\nled L3 yellow\nled L4 blue\nled L5 white\n\n# главната линия: от + през ключа до точка A\nB+ -> S1 -> A\n\n# клон 1: един червен LED\nA -> R1 -> L1 -> C\n\n# клон 2: зелен и жълт LED последователно\nA -> R2 -> L2 -> L3 -> C\n\n# клон 3: свой ключ и син LED\nA -> S2 -> R3 -> L4 -> C\n\n# клон 4: бял LED със слаб ток\nA -> R4 -> L5 -> C\n\n# обратно към минуса на батерията\nC -> B-\n",
             };
             FieldInfo rootField = typeof(CodeCircuitBuilder).GetField("root", BindingFlags.NonPublic | BindingFlags.Instance);
             for (int i = 0; i < codes.Length; i++)

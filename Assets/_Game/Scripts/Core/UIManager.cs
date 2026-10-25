@@ -151,6 +151,9 @@ public class UIManager : MonoBehaviour
 
     public void HideDialogue() { dialogue = null; RefreshBottom(); }
 
+    /// <summary>True while an NPC line is on screen.</summary>
+    public bool HasDialogue => dialogue != null;
+
     public void ShowToast(string text, float seconds = 3f)
     {
         toast = text;
@@ -200,6 +203,7 @@ namespace CatCircuit
         public static void Prompt(string text) { if (UI != null) UI.ShowPrompt(text); }
         public static void Dialogue(string speaker, string line) { if (UI != null) UI.ShowDialogue(speaker, line); else Debug.Log($"{speaker}: {line}"); }
         public static void HideDialogue() { if (UI != null) UI.HideDialogue(); }
+        public static bool DialogueVisible => UI != null && UI.HasDialogue;
         public static void Toast(string text, float seconds = 3f) { if (UI != null) UI.ShowToast(text, seconds); else Debug.Log(text); }
         public static void Objective(string text) { if (UI != null) UI.UpdateObjective(text); }
         public static void HeldItem(string text) { if (UI != null) UI.UpdateHeldItem(text); }

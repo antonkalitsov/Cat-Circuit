@@ -63,7 +63,11 @@ namespace CatCircuit
             if (instance != null) instance.ApplyVolumes();
         }
 
-        public static bool HasMusic => instance != null && instance.musicSource != null && instance.musicSource.clip != null;
+        /// <summary>True when there is background music (a Sound Library clip or the generated <see cref="MusicPlayer"/>).</summary>
+        public static bool HasMusic => instance != null &&
+            ((instance.musicSource != null && instance.musicSource.clip != null) || instance.generatedMusic != null);
+
+        private MusicPlayer generatedMusic;
 
         private void Awake()
         {
@@ -90,6 +94,10 @@ namespace CatCircuit
             {
                 musicSource.clip = library.music;
                 musicSource.Play();
+            }
+            else
+            {
+                generatedMusic = gameObject.AddComponent<MusicPlayer>();   // calm song made in code
             }
             ApplyVolumes();
         }

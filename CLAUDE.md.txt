@@ -87,6 +87,14 @@ Circuits + stages live in Editor/CatCircuitRecipes.cs.
 
 UPGRADE STATUS
 --------------
+2026-10-25 (3rd round): VERIFIED in a batch-mode Unity run on a copy (D:\uni\CAT_test, Editor/CatCircuitInspect:
+CatCircuit ▸ Debug ▸ Inspect boards + screenshots, or -executeMethod CatCircuit.EditorTools.CatCircuitInspect.RunBatch -outDir ...).
+Breadboard/SlotWiring: slot axis = the board wire through/next to the slot (objects named *wire*), + end from the circuit
+(LED/resistor: toward the previous chain element; battery: toward the next; else away from the other) → ReferenceAngle;
+parts drop in along the wires, R turns 90°. Measured: LED long leg = model +X, battery nub = model +Y, NPC faces = model −X.
+NPC/NpcTurner (yaw toward the cat in 4.5 m / while talking). Core/InteriorDecor (rooms are ~30 m halls, 11.6 m ceiling →
+decor scaled by k = ceiling/3.2): lamp + point light, rug, plants, posters, bloom/vignette volume. Sparky's Ohm board on the
+house wall behind him (sloped house collider accepted).
 2026-10-25 (2nd round, same branch): BreadboardSlot seating for ALL slots: reference angle (Correct Rotation Y if Require
 Orientation, else part's default angle); 180° = Reversed for LED/battery, Forward for resistor/wire; other angles = NotSeated.
 Placement snaps to the slot's rotation step; parts turn around their renderer-bounds centre. Breadboard/SlotPolarityMarker

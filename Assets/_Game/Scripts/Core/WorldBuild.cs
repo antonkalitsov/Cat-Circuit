@@ -19,6 +19,7 @@ namespace CatCircuit
         {
             unlit.Clear();
             additive.Clear();
+            lit.Clear();
         }
 
         /// <summary>Flat colour, not affected by light.</summary>
@@ -31,6 +32,21 @@ namespace CatCircuit
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
             if (m.HasProperty("_Color")) m.SetColor("_Color", c);
             unlit[c] = m;
+            return m;
+        }
+
+        private static readonly Dictionary<Color, Material> lit = new Dictionary<Color, Material>();
+
+        /// <summary>Plain coloured surface that is lit by the scene's lights.</summary>
+        public static Material Lit(Color c)
+        {
+            if (lit.TryGetValue(c, out Material m) && m != null) return m;
+            Shader s = Shader.Find("Universal Render Pipeline/Lit");
+            if (s == null) return Unlit(c);
+            m = new Material(s) { name = "Runtime_Lit" };
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+            if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.25f);
+            lit[c] = m;
             return m;
         }
 

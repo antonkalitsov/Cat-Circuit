@@ -162,16 +162,40 @@ namespace CatCircuit
                 if (n.Puzzle == null && (n.NpcName == "Спарки" || n.UnlockedAfterPuzzle == 3)) { sparky = n; break; }
             if (sparky == null) return false;
 
-            Vector3 front = sparky.transform.forward;
-            front.y = 0f;
-            if (front.sqrMagnitude < 0.01f) front = Vector3.forward;
-            front.Normalize();
-            Vector3 side = Vector3.Cross(Vector3.up, front);
-            Vector3 eye = sparky.transform.position + Vector3.up;
-            float scale = 1.6f, offset = 1.3f + BoardW * scale / 2f;
-            Vector3 pos = sparky.transform.position + side * offset;
-            if (Physics.Linecast(eye, pos + Vector3.up, ~0, QueryTriggerInteraction.Ignore)) pos = sparky.transform.position - side * offset;
-            PlaceOnEasel(pos + front * 0.3f, front, scale, sparky.transform.position.y);
+            // The village cat models look along their local −X (checked with editor screenshots), so "behind" Sparky is +X.
+            Vector3 face = -sparky.transform.right;
+            face.y = 0f;
+            if (face.sqrMagnitude < 0.01f) face = Vector3.forward;
+            face.Normalize();
+            Vector3 feet = sparky.transform.position;
+            float ground = WorldBuild.GroundY(feet + Vector3.up, feet.y, 1f);
+            Vector3 eye = new Vector3(feet.x, ground + 1.5f, feet.z);
+
+            // The house wall behind him: the nearest wall, strongly preferring the side away from his face.
+            float bestScore = float.MaxValue;
+            RaycastHit best = default;
+            for (int i = 0; i < 16; i++)
+            {
+                Vector3 dir = Quaternion.Euler(0f, i * 22.5f, 0f) * Vector3.forward;
+                if (!Physics.Raycast(eye, dir, out RaycastHit hit, 9f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                // House colliders in the village are rough, sloped shells – accept them and use the horizontal part of the normal.
+                if (Mathf.Abs(hit.normal.y) > 0.85f || hit.collider.GetComponentInParent<CatInteractable>() != null) continue;
+                float score = hit.distance + (Vector3.Dot(dir, face) > -0.3f ? 6f : 0f);
+                if (score < bestScore) { bestScore = score; best = hit; }
+            }
+            if (bestScore < float.MaxValue)
+            {
+                Vector3 n = best.normal; n.y = 0f; n.Normalize();
+                const float s = 1.6f;
+                float cy = Mathf.Max(ground + 1.9f, ground + 0.5f + BoardH * s / 2f);
+                transform.position = new Vector3(best.point.x, cy, best.point.z) + n * 0.3f;   // just in front of the logs
+                transform.rotation = Quaternion.LookRotation(-n);
+                transform.localScale = Vector3.one * s;
+                return true;
+            }
+
+            // No wall: an easel behind him.
+            PlaceOnEasel(feet - face * 2.5f, face, 1.6f, ground);
             return true;
         }
 
@@ -198,7 +222,7 @@ namespace CatCircuit
         }
 
         /// <summary>Is there flat wall behind the whole board (corners + edge middles)?</summary>
-        private static bool WallFits(RaycastHit hit, float width, float centerDy, float height)
+        private static bool WallFits(RaycastHit hit, float width, float centerDy, float height, float tolerance = 0.15f)
         {
             Vector3 n = hit.normal;
             n.y = 0f;
@@ -209,7 +233,7 @@ namespace CatCircuit
                 {
                     Vector3 from = hit.point + n * 0.4f + along * (sx * width) + Vector3.up * (centerDy + sy * height);
                     if (!Physics.Raycast(from, -n, out RaycastHit h2, 0.8f, ~0, QueryTriggerInteraction.Ignore)) return false;
-                    if (Mathf.Abs(h2.distance - 0.4f) > 0.15f) return false;
+                    if (Mathf.Abs(h2.distance - 0.4f) > tolerance) return false;
                 }
             return true;
         }
@@ -331,7 +355,7 @@ namespace CatCircuit
 
         private void DrawHouse5(int stage, bool done)
         {
-            Label(done ? "Всички задачи са решени!" : $"Задача {stage + 1} от 3", new Vector2(0f, 0.47f), 0.85f, NoteColor);
+            Label(done ? "Всички задачи са решени!" : $"Задача {stage + 1} от 3", new Vector2(0.82f, 0.5f), 0.72f, NoteColor, 0.5f);
             string code1, code2;
             if (stage == 0)
             {
@@ -409,8 +433,12 @@ namespace CatCircuit
 
         private void Title(string text)
         {
-            TextMeshPro t = WorldBuild.Text(content, text, 1.15f, Chalk, new Vector3(0.08f, BoardH / 2f - 0.15f, ZSymbol), TextAlignmentOptions.Center, BoardW - 0.4f);
+            TextMeshPro t = WorldBuild.Text(content, text, 1.15f, Chalk, new Vector3(0.14f, BoardH / 2f - 0.15f, ZSymbol), TextAlignmentOptions.Center, BoardW - 0.62f);
             t.fontStyle = FontStyles.Bold;
+            t.enableAutoSizing = true;   // long titles shrink instead of running under the badge / frame
+            t.fontSizeMin = 0.6f;
+            t.fontSizeMax = 1.15f;
+            t.rectTransform.sizeDelta = new Vector2(BoardW - 0.62f, 0.2f);
         }
 
         private void Note(string text) => Label(text, new Vector2(0f, -0.6f), 0.78f, NoteColor, BoardW - 0.2f);
@@ -437,7 +465,9 @@ namespace CatCircuit
         /// <summary>Hides the wire under a symbol.</summary>
         private void Mask(Vector2 c, Vector2 u, Vector2 v, float halfLen, float halfWidth)
         {
-            WorldBuild.Bar(content, c - u * halfLen, c + u * halfLen, halfWidth * 2f, mask, ZMask, 0.004f);
+            // Exactly the symbol's size (Bar() would add the width to the length and hide neighbouring wire).
+            GameObject m = WorldBuild.Primitive(PrimitiveType.Cube, content, new Vector3(c.x, c.y, ZMask), new Vector3(halfLen * 2f, halfWidth * 2f, 0.004f), mask, "Mask");
+            m.transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(u.y, u.x) * Mathf.Rad2Deg);
         }
 
         /// <summary>Dashed box in the house colour = a slot the player fills.</summary>
@@ -463,7 +493,7 @@ namespace CatCircuit
             Bar(c - u * 0.03f - v * 0.06f, c - u * 0.03f + v * 0.06f, ZSymbol, chalk, 0.045f);    // short (−)
             Label("+", c + u * 0.09f + v * (vertical ? 0.14f : 0.1f), 0.8f, Chalk, 0.2f);
             Label("−", c - u * 0.09f + v * (vertical ? 0.14f : 0.1f), 0.8f, Chalk, 0.2f);
-            if (!string.IsNullOrEmpty(label)) Label(label, vertical ? c + v * 0.3f : c - v * 0.11f, 0.8f, Chalk, 0.34f);
+            if (!string.IsNullOrEmpty(label)) Label(label, vertical ? c + v * (slot ? 0.44f : 0.3f) : c - u * 0.3f + v * 0.1f, 0.8f, Chalk, 0.34f);
             if (slot) SlotBox(c, u, v, 0.14f, 0.2f);
         }
 
@@ -475,7 +505,7 @@ namespace CatCircuit
             Mask(c, u, v, 0.12f, 0.05f);
             Vector2 a = c - u * 0.12f - v * 0.045f, b = c + u * 0.12f - v * 0.045f, d = c + u * 0.12f + v * 0.045f, e = c - u * 0.12f + v * 0.045f;
             Bar(a, b, ZSymbol, chalk); Bar(b, d, ZSymbol, chalk); Bar(d, e, ZSymbol, chalk); Bar(e, a, ZSymbol, chalk);
-            if (!string.IsNullOrEmpty(label)) Label(label, c + v * 0.12f, 0.8f, Chalk, 0.8f);
+            if (!string.IsNullOrEmpty(label)) Label(label, c + v * (slot ? 0.19f : 0.13f), 0.8f, Chalk, 0.8f);
             if (slot) SlotBox(c, u, v, 0.18f, 0.1f);
         }
 

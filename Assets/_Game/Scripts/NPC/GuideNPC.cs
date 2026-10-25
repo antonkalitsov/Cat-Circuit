@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -112,6 +112,9 @@ namespace CatCircuit
                 body.radius = 0.4f;
             }
             if (buildLook && GetComponentInChildren<Renderer>() == null) BuildLook();
+            var turner = gameObject.AddComponent<NpcTurner>();
+            turner.faceLocal = Vector3.forward;
+            turner.isTalking = () => activeLines != null;
         }
 
         private void Start()
@@ -268,7 +271,7 @@ namespace CatCircuit
 
             copy.transform.SetParent(parent, false);
             copy.transform.localPosition = Vector3.zero;
-            copy.transform.localRotation = Quaternion.identity;
+            copy.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);   // the cat models look along −X → turn it to face +Z like the hat
             copy.transform.localScale = source.transform.lossyScale;
             Destroy(holder);
 

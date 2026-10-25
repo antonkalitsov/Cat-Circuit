@@ -1,4 +1,4 @@
-using CatCircuit;
+﻿using CatCircuit;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Serialization;
@@ -61,6 +61,11 @@ public class CatNPC : CatInteractable
     private void Awake()
     {
         EnsureInteractionTrigger(2f);
+        if (GetComponent<NpcTurner>() == null)
+        {
+            var turner = gameObject.AddComponent<NpcTurner>();   // look at the cat when it comes close
+            turner.isTalking = () => activeLines != null;
+        }
     }
 
     private void OnEnable()

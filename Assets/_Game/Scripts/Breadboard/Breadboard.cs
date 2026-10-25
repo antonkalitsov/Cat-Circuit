@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using CatCircuit;
 using UnityEngine;
 using UnityEngine.Events;
@@ -68,6 +68,12 @@ B+ -> S1 -> L1 -> B-";
     // ------------------------------------------------------------------ lifecycle
 
     private void Awake() => CollectSlots();
+
+    protected override void Start()
+    {
+        SlotWiring.AlignFixedBatteries(this);   // battery models on the board: + towards the circuit's + side
+        base.Start();
+    }
 
     private void CollectSlots()
     {

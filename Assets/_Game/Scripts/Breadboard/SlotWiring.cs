@@ -32,7 +32,7 @@ namespace CatCircuit
             // 1. The wire direction next to the slot.
             Vector3 axis = Vector3.zero;
             float best = float.MaxValue, contact = 0.5f;
-            foreach (Segment s in Wires(slot))
+            foreach (Segment s in Wires(slot.gameObject))
             {
                 Vector3 a = Flat(s.a - c), b = Flat(s.b - c);
                 Vector3 dir = (b - a).normalized;
@@ -123,11 +123,94 @@ namespace CatCircuit
             Vector3? found = null;
             foreach (PickupableItem p in Object.FindObjectsByType<PickupableItem>(FindObjectsSortMode.None))
             {
-                if (p.Data == null || p.Data.Kind != kind || p.CurrentState == PickupableItem.State.Held) continue;
+                if (p.Data == null || p.Data.Kind != kind || p.CurrentState != PickupableItem.State.World) continue;
                 float d = Vector3.Distance(p.transform.position, c);
                 if (d < best) { best = d; found = p.transform.position; }
             }
             return found;
+        }
+
+        // ------------------------------------------------------------------ fixed batteries on the boards
+
+        /// <summary>
+        /// Turns the battery models lying on a board (not in a slot) so their + nub points along the wire towards
+        /// the part the circuit's "B+" leads to – e.g. House 2: B+ → R1, so + faces the resistor.
+        /// </summary>
+        public static void AlignFixedBatteries(Breadboard board)
+        {
+            CircuitDefinition def = board.ParseCircuit();
+            if (def == null || def.HasErrors) return;
+            PartDef battery = null;
+            foreach (PartDef p in def.OfKind(PartKind.Battery)) { battery = p; break; }
+            if (battery == null) return;   // battery is a slot part (House 1) – the player places it
+
+            // What does the current reach first after leaving "+"?
+            Vector3? target = null;
+            foreach (ChainDef chain in def.chains)
+            {
+                for (int i = 0; i + 1 < chain.items.Count && target == null; i++)
+                {
+                    ChainItem it = chain.items[i];
+                    if (it.isPart || !string.Equals(it.label, battery.id + "+", System.StringComparison.OrdinalIgnoreCase)) continue;
+                    for (int j = i + 1; j < chain.items.Count && target == null; j++)
+                    {
+                        ChainItem next = chain.items[j];
+                        if (!next.isPart || next.part == null || next.part.kind == PartKind.Battery) continue;
+                        target = Position(board, next);
+                    }
+                }
+                if (target != null) break;
+            }
+            if (target == null) return;
+
+            Vector3 bc = board.transform.position;
+            foreach (PickupableItem item in Object.FindObjectsByType<PickupableItem>(FindObjectsSortMode.None))
+            {
+                if (item.Data == null || item.Data.Kind != PartKind.Battery || item.CurrentState != PickupableItem.State.World) continue;
+                if (Flat(item.transform.position - bc).magnitude > 7f) continue;
+                Vector3 plusNow = item.transform.TransformDirection(Vector3.up);   // the model's + nub is at +Y
+                if (Mathf.Abs(plusNow.y) > 0.5f) continue;                          // standing up – leave it
+                Vector3 centre = VisualCentre(item);
+                if (!TryAxisAt(item.gameObject, centre, out Vector3 axis)) axis = Flat(plusNow).normalized;
+                Vector3 want = axis * Mathf.Sign(Vector3.Dot(Flat(target.Value - centre), axis));
+                if (want == Vector3.zero) continue;
+                float angle = Vector3.SignedAngle(Flat(plusNow), want, Vector3.up);
+                if (Mathf.Abs(angle) < 1f) continue;
+                item.transform.RotateAround(centre, Vector3.up, angle);   // turn on the spot
+                Debug.Log($"[SlotWiring] Turned battery '{item.name}' by {angle:0}° so its + faces the circuit's + side.");
+            }
+        }
+
+        private static Vector3 VisualCentre(PickupableItem item)
+        {
+            Bounds b = default; bool any = false;
+            foreach (Renderer r in item.GetComponentsInChildren<Renderer>())
+            {
+                if (r is ParticleSystemRenderer) continue;
+                if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+            }
+            return any ? b.center : item.transform.position;
+        }
+
+        /// <summary>Direction of the board wire that runs under / ends next to a point (horizontal, unit).</summary>
+        public static bool TryAxisAt(GameObject inScene, Vector3 c, out Vector3 axis)
+        {
+            axis = Vector3.zero;
+            float best = float.MaxValue;
+            foreach (Segment s in Wires(inScene))
+            {
+                Vector3 a = Flat(s.a - c), b = Flat(s.b - c);
+                float dEnd = Mathf.Min(a.magnitude, b.magnitude);
+                float dLine = DistanceToSegment(Vector3.zero, a, b);
+                float score = dLine < 0.4f ? dLine : dEnd < 1.0f ? dEnd : float.MaxValue;
+                if (score >= best) continue;
+                best = score;
+                axis = (b - a).normalized;
+            }
+            if (axis == Vector3.zero) return false;
+            if (Mathf.Abs(axis.x) > 0.94f) axis = new Vector3(Mathf.Sign(axis.x), 0f, 0f);
+            else if (Mathf.Abs(axis.z) > 0.94f) axis = new Vector3(0f, 0f, Mathf.Sign(axis.z));
+            return true;
         }
 
         // ------------------------------------------------------------------ wires in the scene
@@ -135,9 +218,9 @@ namespace CatCircuit
         private static List<Segment> cache;
         private static int cacheFrame = -1, cacheScene;
 
-        private static List<Segment> Wires(BreadboardSlot slot)
+        private static List<Segment> Wires(GameObject inScene)
         {
-            int scene = slot.gameObject.scene.handle;
+            int scene = inScene.scene.handle;
             if (cache != null && cacheFrame == Time.frameCount && cacheScene == scene) return cache;
             cache = new List<Segment>();
             cacheFrame = Time.frameCount;

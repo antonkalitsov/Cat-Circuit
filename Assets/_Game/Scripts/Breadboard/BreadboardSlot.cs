@@ -77,9 +77,52 @@ public class BreadboardSlot : CatInteractable
         }
     }
 
-    /// <summary>Rotation (Y) at which the part is connected the right way round.</summary>
-    public float ReferenceAngle(ComponentData data) =>
-        requireOrientation ? correctRotationY : (data != null ? data.defaultSlotRotation.y : 0f);
+    /// <summary>
+    /// Rotation (Y) at which the part is connected the right way round: lying ALONG the board's wires with its
+    /// + end (LED long leg / battery nub) at the + contact (see <see cref="SlotWiring"/>).
+    /// Slots without wires nearby use Correct Rotation Y (Require Orientation) or the part's default angle.
+    /// </summary>
+    public float ReferenceAngle(ComponentData data)
+    {
+        SlotWiring.Result w = Wiring(data);
+        if (w.found && data != null)
+        {
+            Vector3 d0 = Quaternion.Euler(data.defaultSlotRotation.x, 0f, data.defaultSlotRotation.z) * PartPlusAxis(data);
+            d0.y = 0f;
+            if (d0.sqrMagnitude > 0.0001f) return Mathf.Repeat(Vector3.SignedAngle(d0, w.plusLocal, Vector3.up), 360f);
+        }
+        return requireOrientation ? correctRotationY : (data != null ? data.defaultSlotRotation.y : 0f);
+    }
+
+    /// <summary>The part's + direction in its own model space (measured in Unity: LED long leg +X, battery nub +Y, resistor along X).</summary>
+    public static Vector3 PartPlusAxis(ComponentData data) =>
+        data != null && data.Kind == PartKind.Battery ? Vector3.up : Vector3.right;
+
+    /// <summary>Slot-local positions of the + and − wire contacts, if the slot has wires next to it.</summary>
+    public bool TryGetContacts(ComponentData data, out Vector3 plusLocal, out Vector3 minusLocal)
+    {
+        SlotWiring.Result w = Wiring(data);
+        plusLocal = w.plusLocal * w.contactDistance;
+        minusLocal = -plusLocal;
+        return w.found;
+    }
+
+    private SlotWiring.Result wiringPart, wiringBattery;
+    private bool wiringDone;
+
+    private SlotWiring.Result Wiring(ComponentData data)
+    {
+        if (!wiringDone)
+        {
+            wiringDone = true;
+            wiringPart = SlotWiring.Find(this, false);
+            wiringBattery = SlotWiring.Find(this, true);
+        }
+        return data != null && data.Kind == PartKind.Battery ? wiringBattery : wiringPart;
+    }
+
+    /// <summary>R turns by at least 90° on a wired slot: along the wires → sideways → reversed → sideways.</summary>
+    private float Step(ComponentData data) => Wiring(data).found ? Mathf.Max(90f, rotationStep) : rotationStep;
 
     /// <summary>LEDs and batteries only work one way round; resistors and wires work both ways.</summary>
     public static bool IsPolar(ComponentData data) =>
@@ -160,7 +203,7 @@ public class BreadboardSlot : CatInteractable
     public override bool TryRotate(PlayerCarry player)
     {
         if (!IsOccupied || locked) return false;
-        SetRotation(rotationY + rotationStep);
+        SetRotation(rotationY + Step(placedItem.Data));
         GameAudio.Play(Sfx.Rotate, 1f, 0.08f);
         return true;
     }
@@ -181,11 +224,12 @@ public class BreadboardSlot : CatInteractable
         ComponentData data = item.Data;
 
         placedItem = item;
-        // Snap to this slot's rotation steps around the reference angle, so the correct angle can always be reached.
+        // The part drops in ALONG the wires (the way the cat holds it decides which end goes where);
+        // the player then turns it with R.
         float reference = ReferenceAngle(data);
         float raw = (data != null ? data.defaultSlotRotation.y : 0f) + extraRotationY;
-        float step = Mathf.Max(1f, rotationStep);
-        rotationY = Mathf.Repeat(reference + Mathf.Round(Mathf.DeltaAngle(reference, raw) / step) * step, 360f);
+        float snap = Wiring(data).found ? 180f : Mathf.Max(1f, rotationStep);
+        rotationY = Mathf.Repeat(reference + Mathf.Round(Mathf.DeltaAngle(reference, raw) / snap) * snap, 360f);
 
         Vector3 offset = data != null ? data.slotPositionOffset : Vector3.zero;
         Vector3? scale = data != null && data.worldPrefab != null ? data.worldPrefab.transform.localScale : (Vector3?)null;

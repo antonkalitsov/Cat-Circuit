@@ -84,6 +84,16 @@ namespace CatCircuit
         /// <summary>Puts "+" where the part's + end points at the correct angle, "−" opposite.</summary>
         private void Position(ComponentData data, float angle)
         {
+            // Normal case: right where the board's wires touch the slot.
+            if (slot.TryGetContacts(data, out Vector3 plusContact, out Vector3 minusContact))
+            {
+                plus.position = slot.transform.TransformPoint(plusContact) + Vector3.up * 0.3f;
+                minus.position = slot.transform.TransformPoint(minusContact) + Vector3.up * 0.3f;
+                plus.gameObject.SetActive(true);
+                minus.gameObject.SetActive(true);
+                return;
+            }
+
             Vector3 plusLocal = PlusDirection(data);
             Vector3 rot = data.defaultSlotRotation;
             Vector3 dirSlot = Quaternion.Euler(rot.x, angle, rot.z) * plusLocal;

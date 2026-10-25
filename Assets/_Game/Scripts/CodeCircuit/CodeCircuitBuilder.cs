@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -230,21 +230,25 @@ B+ -> R1 -> L1 -> B-";
             foreach (PartDef p in built.parts)
             {
                 if (partPos.ContainsKey(p)) continue;
-                partPos[p] = new Vector3(-1.5f * spacing, 0f, -k * rowSpacing - rowSpacing * 0.5f);
+                // centred next to the rows (a single battery sits halfway between the first and the last line)
+                float middle = -(Mathf.Max(1, built.chains.Count) - 1) * rowSpacing * 0.5f;
+                partPos[p] = new Vector3(-1.5f * spacing, 0f, middle - k * rowSpacing);
                 vertical.Add(p);
                 k++;
             }
 
-            // 3) centre everything around the builder
+            // 3) centre everything around the builder (with room for the side wires and the top / bottom rails)
             var bounds = new Bounds(Vector3.zero, Vector3.zero);
             bool first = true;
             foreach (Vector3 v in partPos.Values) { if (first) { bounds = new Bounds(v, Vector3.zero); first = false; } else bounds.Encapsulate(v); }
             foreach (var m in markers) bounds.Encapsulate(m.Key);
             Vector3 shift = new Vector3(-bounds.center.x, surfaceY, -bounds.center.z);
-            if (showBoard) CreateBoard(bounds.size);
+            if (showBoard) CreateBoard(bounds.size + new Vector3(spacing * 1.4f, 0f, rowSpacing * 1.4f));
 
-            // 4) spawn parts and remember their terminal positions
+            // 4) spawn parts, turned so their + side matches the circuit, and find their REAL ends
             float half = spacing * 0.3f;
+            var terminals = new List<Vector3>();
+            var partEnds = new Dictionary<PartDef, KeyValuePair<Vector3, Vector3>>();
             foreach (var kv in partPos)
             {
                 PartDef p = kv.Key;
@@ -254,19 +258,20 @@ B+ -> R1 -> L1 -> B-";
                 // Vertical batteries: "+" on top (further away), so current visibly flows "down" the rows.
                 if (isVertical && p.kind == PartKind.Battery) dir = Vector3.forward;
 
-                AddPoint(nodePoints, p.nodeA, pos - dir * half);
-                AddPoint(nodePoints, p.nodeB, pos + dir * half);
-                SpawnPart(p, pos, isVertical, holder.transform);
+                GameObject go = SpawnPart(p, pos, dir, holder.transform);
+                float reach = TerminalReach(go, dir, half);
+                Vector3 a = pos - dir * reach, b = pos + dir * reach;
+                partEnds[p] = new KeyValuePair<Vector3, Vector3>(a, b);
+                terminals.Add(a);
+                terminals.Add(b);
             }
 
             // 5) chain points (junctions / terminal references) with a dot and a label
             for (int i = 0; i < markers.Count; i++)
             {
                 Vector3 pos = markers[i].Key + shift;
-                AddPoint(nodePoints, markerNodes[i], pos);
-
                 GameObject dot = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                Destroy(dot.GetComponent<Collider>());
+                DestroyImmediateSafe(dot.GetComponent<Collider>());
                 dot.name = "Point " + markers[i].Value;
                 dot.transform.SetParent(root, false);
                 dot.transform.localPosition = pos;
@@ -275,10 +280,13 @@ B+ -> R1 -> L1 -> B-";
                 if (showLabels) CreateLabel(markers[i].Value, pos + new Vector3(0f, 0.01f, 0.3f), 0.8f);
             }
 
-            // 6) wires: connect all points of a node with a minimum spanning tree of L-shaped lines
-            foreach (var kv in nodePoints) DrawNodeWires(kv.Key, kv.Value);
+            // 6) wires, drawn like a real schematic
+            RouteWires(shift, partEnds, vertical);
 
-            Destroy(holder);
+            // 7) a small solder dot where every wire meets a part
+            foreach (Vector3 t in terminals) SolderDot(t);
+
+            DestroyImmediateSafe(holder);
         }
 
         private static void AddPoint(Dictionary<int, List<Vector3>> d, int node, Vector3 p)
@@ -288,18 +296,28 @@ B+ -> R1 -> L1 -> B-";
             list.Add(p);
         }
 
-        private void SpawnPart(PartDef p, Vector3 localPos, bool vertical, Transform inactiveHolder)
+        /// <summary>
+        /// Spawns the model lying along <paramref name="dir"/> (A → B) with its + side the right way:
+        /// battery + nub towards B (the "+" terminal), LED long leg (anode) towards A where the current enters.
+        /// The model is centred on its visual middle (model pivots are often at one end).
+        /// </summary>
+        private GameObject SpawnPart(PartDef p, Vector3 localPos, Vector3 dir, Transform inactiveHolder)
         {
             ComponentData data = PickModel(p);
             GameObject go;
-            Quaternion yaw = Quaternion.Euler(0f, vertical ? 90f : 0f, 0f);
 
             if (data != null && data.worldPrefab != null)
             {
                 go = Instantiate(data.worldPrefab, inactiveHolder);
                 StripGameplayComponents(go);
                 go.transform.SetParent(root, false);
-                go.transform.localRotation = yaw * Quaternion.Euler(data.defaultSlotRotation);
+                Quaternion baseRot = Quaternion.Euler(data.defaultSlotRotation);
+                // + axis of the models, measured in the editor: battery nub +Y, LED long leg +X, resistor along X.
+                Vector3 plus = baseRot * (p.kind == PartKind.Battery ? Vector3.up : Vector3.right);
+                plus.y = 0f;
+                Vector3 want = p.kind == PartKind.LED ? -dir : dir;
+                float yawAngle = plus.sqrMagnitude > 0.0001f ? Vector3.SignedAngle(plus, want, Vector3.up) : 0f;
+                go.transform.localRotation = Quaternion.Euler(0f, yawAngle, 0f) * baseRot;
                 go.transform.localScale = data.worldPrefab.transform.localScale * partScale;
                 go.SetActive(true);
             }
@@ -307,12 +325,13 @@ B+ -> R1 -> L1 -> B-";
             {
                 go = CreatePrimitivePart(p.kind);
                 go.transform.SetParent(root, false);
-                go.transform.localRotation = yaw;
+                go.transform.localRotation = Quaternion.LookRotation(Vector3.Cross(Vector3.up, dir));
             }
 
             go.name = $"{p.kind} {p.id}";
             go.transform.localPosition = localPos;
             SitOnSurface(go);
+            CentreOn(go, localPos);
 
             if (p.kind == PartKind.LED)
             {
@@ -326,7 +345,54 @@ B+ -> R1 -> L1 -> B-";
                 switchVisuals[p.id] = sw;
             }
 
-            if (showLabels) CreateLabel(LabelFor(p), localPos + new Vector3(0f, 0.01f, -0.45f), 1f);
+            // Labels under row parts; next to the battery column (so the battery doesn't cover its label).
+            bool columnPart = Mathf.Abs(dir.z) > 0.5f;
+            if (showLabels) CreateLabel(LabelFor(p), localPos + (columnPart ? new Vector3(-0.85f, 0.01f, 0f) : new Vector3(0f, 0.01f, -0.45f)), 1f);
+            return go;
+        }
+
+        private static Bounds RendererBounds(GameObject go)
+        {
+            Bounds b = default; bool any = false;
+            foreach (Renderer r in go.GetComponentsInChildren<Renderer>())
+            {
+                if (r is ParticleSystemRenderer) continue;
+                if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+            }
+            return any ? b : new Bounds(go.transform.position, Vector3.zero);
+        }
+
+        /// <summary>Moves the part sideways so its visual middle (not its pivot) is at <paramref name="localPos"/>.</summary>
+        private void CentreOn(GameObject go, Vector3 localPos)
+        {
+            Vector3 c = root.InverseTransformPoint(RendererBounds(go).center);
+            go.transform.localPosition += new Vector3(localPos.x - c.x, 0f, localPos.z - c.z);
+        }
+
+        /// <summary>How far the part reaches from its centre along <paramref name="dir"/> – where the wires attach.</summary>
+        private float TerminalReach(GameObject go, Vector3 dir, float fallback)
+        {
+            Bounds b = RendererBounds(go);
+            Vector3 w = root.TransformDirection(dir);
+            float reach = Mathf.Abs(w.x) * b.extents.x + Mathf.Abs(w.z) * b.extents.z;
+            return reach > 0.05f ? reach : fallback;
+        }
+
+        private void SolderDot(Vector3 localPos)
+        {
+            GameObject dot = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            DestroyImmediateSafe(dot.GetComponent<Collider>());
+            dot.name = "Solder";
+            dot.transform.SetParent(root, false);
+            dot.transform.localPosition = new Vector3(localPos.x, surfaceY + wireThickness * 0.5f, localPos.z);
+            dot.transform.localScale = Vector3.one * wireThickness * 1.8f;
+            Tint(dot, new Color(0.55f, 0.56f, 0.6f));
+        }
+
+        private static void DestroyImmediateSafe(UnityEngine.Object o)
+        {
+            if (o == null) return;
+            if (Application.isPlaying) Destroy(o); else DestroyImmediate(o);
         }
 
         private static string LabelFor(PartDef p)
@@ -421,6 +487,135 @@ B+ -> R1 -> L1 -> B-";
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = showBoard ? new Color(0.1f, 0.1f, 0.18f) : Color.white;
             tmp.rectTransform.sizeDelta = new Vector2(3f, 0.6f);
+        }
+
+        // ------------------------------------------------------------------ schematic-style wiring
+
+        /// <summary>
+        /// Wires like a drawn schematic instead of "shortest path":
+        ///   • inside a row (one code line) each part is wired straight to the next one
+        ///   • the ends of the rows and the battery (left column) join their node through a vertical side wire (bus):
+        ///     row STARTS and the battery on a bus left of the rows, row ENDS on a bus right of the rows
+        ///   • a node that needs both sides (e.g. B− at the end of a row and on the battery) gets a rail above or
+        ///     below all rows, so no wire runs over a part
+        ///   • solder dots only where three or more wires really meet
+        /// Anything unusual (a part's terminal referenced in another line, like R1+) falls back to the old L-wires.
+        /// </summary>
+        private void RouteWires(Vector3 shift, Dictionary<PartDef, KeyValuePair<Vector3, Vector3>> partEnds, HashSet<PartDef> column)
+        {
+            var left = new Dictionary<int, List<Vector3>>();
+            var right = new Dictionary<int, List<Vector3>>();
+            var fallback = new Dictionary<int, List<Vector3>>();
+            float topZ = float.MinValue, bottomZ = float.MaxValue, rowStartX = float.MaxValue, rowEndX = float.MinValue;
+
+            // a) inside each row
+            for (int row = 0; row < built.chains.Count; row++)
+            {
+                ChainDef chain = built.chains[row];
+                var aPts = new List<Vector3>();
+                var bPts = new List<Vector3>();
+                foreach (ChainItem it in chain.items)
+                {
+                    if (it.isPart && it.part != null && partEnds.TryGetValue(it.part, out var ends)) { aPts.Add(ends.Key); bPts.Add(ends.Value); }
+                    else
+                    {
+                        int col = aPts.Count;
+                        Vector3 p = new Vector3(col * spacing, 0f, -row * rowSpacing) + shift;
+                        aPts.Add(p); bPts.Add(p);
+                    }
+                }
+                for (int i = 0; i + 1 < chain.items.Count; i++)
+                {
+                    int node = chain.items[i].isPart ? chain.items[i].part.nodeB : chain.items[i].node;
+                    CreateWire(node, bPts[i], aPts[i + 1]);
+                }
+
+                for (int i = 0; i < chain.items.Count; i++)
+                {
+                    ChainItem it = chain.items[i];
+                    if (it.isPart) continue;
+                    if (i == 0) AddPoint(left, it.node, aPts[i]);
+                    else if (i == chain.items.Count - 1) AddPoint(right, it.node, aPts[i]);
+                    else AddPoint(fallback, it.node, aPts[i]);   // a junction in the middle of a line
+                    topZ = Mathf.Max(topZ, aPts[i].z);
+                    bottomZ = Mathf.Min(bottomZ, aPts[i].z);
+                    rowStartX = Mathf.Min(rowStartX, aPts[0].x);
+                    rowEndX = Mathf.Max(rowEndX, bPts[bPts.Count - 1].x);
+                }
+            }
+
+            // b) parts in the left column (the battery): both terminals go to the left side
+            var columnNodes = new HashSet<int>();
+            foreach (PartDef p in column)
+            {
+                if (!partEnds.TryGetValue(p, out var ends)) continue;
+                AddPoint(left, p.nodeA, ends.Key);
+                AddPoint(left, p.nodeB, ends.Value);
+                columnNodes.Add(p.nodeA);
+                columnNodes.Add(p.nodeB);
+                topZ = Mathf.Max(topZ, Mathf.Max(ends.Key.z, ends.Value.z));
+                bottomZ = Mathf.Min(bottomZ, Mathf.Min(ends.Key.z, ends.Value.z));
+            }
+            if (rowStartX == float.MaxValue) { rowStartX = shift.x; rowEndX = shift.x; }
+
+            // c) nodes that need a part's terminal from another line → old L-wires for that node
+            foreach (var kv in fallback)
+            {
+                var pts = new List<Vector3>(kv.Value);
+                if (left.TryGetValue(kv.Key, out var l)) { pts.AddRange(l); left.Remove(kv.Key); }
+                if (right.TryGetValue(kv.Key, out var r)) { pts.AddRange(r); right.Remove(kv.Key); }
+                DrawNodeWires(kv.Key, pts);
+            }
+
+            // d) buses and rails
+            int leftIndex = 0, rightIndex = 0, topIndex = 0, bottomIndex = 0;
+            var nodeSet = new HashSet<int>(left.Keys);
+            nodeSet.UnionWith(right.Keys);
+            // Left side wires nearest the rows first; the battery's wires further out (towards the battery), the ones
+            // that also need a rail outermost – this keeps crossings to a minimum.
+            var nodes = new List<int>(nodeSet);
+            nodes.Sort((x, y) => Rank(x).CompareTo(Rank(y)));
+            int Rank(int n) => (columnNodes.Contains(n) ? 1 : 0) + (left.ContainsKey(n) && right.ContainsKey(n) ? 2 : 0);
+            float midZ = (topZ + bottomZ) * 0.5f;
+            foreach (int node in nodes)
+            {
+                left.TryGetValue(node, out var lp);
+                right.TryGetValue(node, out var rp);
+                int count = (lp?.Count ?? 0) + (rp?.Count ?? 0);
+                if (count < 2) continue;
+
+                float? railZ = null;
+                if (lp != null && rp != null && lp.Count > 0 && rp.Count > 0)
+                {
+                    // Rail on the side where the left-hand points are (e.g. the battery's − at the bottom → bottom rail).
+                    float maxLeft = float.MinValue;
+                    foreach (Vector3 v in lp) maxLeft = Mathf.Max(maxLeft, v.z);
+                    bool top = maxLeft >= midZ;
+                    railZ = top ? topZ + rowSpacing * 0.55f + topIndex++ * 0.25f
+                                : bottomZ - rowSpacing * 0.55f - bottomIndex++ * 0.25f;
+                }
+
+                float lx = rowStartX - spacing * 0.35f - leftIndex * 0.3f;
+                float rx = rowEndX + spacing * 0.35f + rightIndex * 0.3f;
+                if (lp != null && lp.Count > 0) { Bus(node, lp, lx, railZ, count); leftIndex++; }
+                if (rp != null && rp.Count > 0) { Bus(node, rp, rx, railZ, count); rightIndex++; }
+                if (railZ.HasValue) CreateWire(node, new Vector3(lx, 0f, railZ.Value), new Vector3(rx, 0f, railZ.Value));
+            }
+        }
+
+        /// <summary>A vertical side wire at x = <paramref name="busX"/>, with a short straight wire to each point.</summary>
+        private void Bus(int node, List<Vector3> points, float busX, float? railZ, int connections)
+        {
+            float minZ = float.MaxValue, maxZ = float.MinValue;
+            foreach (Vector3 p in points)
+            {
+                CreateWire(node, p, new Vector3(busX, 0f, p.z));
+                if (connections >= 3) SolderDot(new Vector3(busX, 0f, p.z));
+                minZ = Mathf.Min(minZ, p.z);
+                maxZ = Mathf.Max(maxZ, p.z);
+            }
+            if (railZ.HasValue) { minZ = Mathf.Min(minZ, railZ.Value); maxZ = Mathf.Max(maxZ, railZ.Value); }
+            if (maxZ - minZ > 0.001f) CreateWire(node, new Vector3(busX, 0f, minZ), new Vector3(busX, 0f, maxZ));
         }
 
         // ------------------------------------------------------------------ wires

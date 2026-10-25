@@ -87,6 +87,11 @@ Circuits + stages live in Editor/CatCircuitRecipes.cs.
 
 UPGRADE STATUS
 --------------
+2026-10-25 (4th round): Breadboard.Start → SlotWiring.AlignFixedBatteries turns battery models lying on a board so + faces
+the first part after B+ (House 2, 3 were reversed). House 2 (Require Orientation slot): polar parts always land reversed.
+CodeCircuitBuilder: parts turned by polarity (battery + to B, LED anode to A), centred on their visual middle, wires to their real
+ends; RouteWires = schematic routing (rows straight, left/right buses, top/bottom rails, solder dots at real junctions).
+Verified stages 1-3 lit 1/1, 2/2, 2/2 with screenshots.
 2026-10-25 (3rd round): VERIFIED in a batch-mode Unity run on a copy (D:\uni\CAT_test, Editor/CatCircuitInspect:
 CatCircuit ▸ Debug ▸ Inspect boards + screenshots, or -executeMethod CatCircuit.EditorTools.CatCircuitInspect.RunBatch -outDir ...).
 Breadboard/SlotWiring: slot axis = the board wire through/next to the slot (objects named *wire*), + end from the circuit

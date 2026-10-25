@@ -71,7 +71,13 @@ namespace CatCircuit.EditorTools
             var parts = Object.FindObjectsByType<PickupableItem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
 
             foreach (Breadboard b in Object.FindObjectsByType<Breadboard>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
                 log.AppendLine($"Board '{b.name}' at {b.transform.position} circuit:\n{new SerializedObject(b).FindProperty("circuit").stringValue}");
+                SlotWiring.AlignFixedBatteries(b);   // what Breadboard.Start does in the game
+                foreach (PickupableItem it in Object.FindObjectsByType<PickupableItem>(FindObjectsSortMode.None))
+                    if (it.Data != null && it.Data.Kind == PartKind.Battery)
+                        log.AppendLine($"Battery '{it.name}' at {Fmt(it.transform.position)} + nub points {Fmt(it.transform.TransformDirection(Vector3.up))}");
+            }
             foreach (PickupableItem p in parts)
                 log.AppendLine($"Part '{p.name}' data={(p.Data != null ? p.Data.name : "-")} at {p.transform.position}");
             foreach (LEDLight l in Object.FindObjectsByType<LEDLight>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -91,6 +97,34 @@ namespace CatCircuit.EditorTools
             }
 
             Screenshots(sceneName, slots);
+            if (sceneName == "House5") CodeStages();
+        }
+
+        private static void CodeStages()
+        {
+            CodeCircuitBuilder builder = Object.FindAnyObjectByType<CodeCircuitBuilder>();
+            if (builder == null) { log.AppendLine("!! no CodeCircuitBuilder"); return; }
+            string[] codes =
+            {
+                "battery B 9V\nresistor R1 330\nled L1 red\nB+ -> R1 -> L1 -> B-",
+                "battery B 3V\nresistor R1 68\nresistor R2 68\nled L1 red\nled L2 red\nB+ -> R1 -> L1 -> B-\nB+ -> R2 -> L2 -> B-",
+                "battery B 3V\nswitch S1 on\nresistor R1 68\nresistor R2 68\nled L1 red\nled L2 red\nB+ -> S1 -> A\nA -> R1 -> L1 -> B-\nA -> R2 -> L2 -> B-",
+            };
+            FieldInfo rootField = typeof(CodeCircuitBuilder).GetField("root", BindingFlags.NonPublic | BindingFlags.Instance);
+            for (int i = 0; i < codes.Length; i++)
+            {
+                if (rootField?.GetValue(builder) is Transform old && old != null) Object.DestroyImmediate(old.gameObject);
+                bool ok = builder.Build(codes[i]);
+                int lit = 0, leds = 0;
+                foreach (PartResult r in builder.Result.Leds) { leds++; if (r.lit) lit++; }
+                log.AppendLine($"House5 stage {i + 1}: build={ok} lit {lit}/{leds} short={builder.Result.shortCircuit}");
+                Transform root = rootField?.GetValue(builder) as Transform;
+                if (root == null) continue;
+                Vector3 c = root.position;
+                foreach (Transform t in root) if (t.name.StartsWith("Battery")) log.AppendLine($"   {t.name} + nub points {Fmt(t.TransformDirection(Vector3.up))} at {Fmt(t.position)}");
+                ShotOrtho($"House5_code_stage{i + 1}_top", c, 4.5f);
+                Shot($"House5_code_stage{i + 1}_view", c + new Vector3(0f, 4.5f, -6f), c, 50f);
+            }
         }
 
         private class WireEnd { public string name; public Vector3 end; }

@@ -73,6 +73,9 @@ namespace CatCircuit
 
         protected virtual void OnSolved(CircuitResult result) { }
 
+        /// <summary>A hint about how parts SIT (not seated / battery reversed), checked before the puzzle's own hints. null = none.</summary>
+        public virtual string PlacementHint() => null;
+
         /// <summary>Called by <see cref="CircuitPuzzle"/> when all of its stages are done.</summary>
         public virtual void NotifyPuzzleComplete() { }
 

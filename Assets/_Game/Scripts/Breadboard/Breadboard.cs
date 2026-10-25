@@ -135,6 +135,24 @@ B+ -> S1 -> L1 -> B-";
 
     public override void NotifyPuzzleComplete() => OnCircuitComplete?.Invoke();
 
+    /// <summary>A part turned sideways (legs don't reach the contacts) or a battery turned round.</summary>
+    public override string PlacementHint()
+    {
+        foreach (BreadboardSlot s in Slots)
+        {
+            if (s == null || s.PlacedItem == null) continue;
+            ComponentData d = s.PlacedItem.Data;
+            BreadboardSlot.Seating seat = s.CurrentSeating;
+            if (seat == BreadboardSlot.Seating.NotSeated)
+                return d != null && d.Kind == PartKind.Resistor
+                    ? "Резисторът не е свързан – завърти го с R, така че крачетата да стигнат контактите."
+                    : $"{s.PlacedItem.DisplayName} не е наместен – завърти го с R.";
+            if (seat == BreadboardSlot.Seating.Reversed && d != null && d.Kind == PartKind.Battery)
+                return "Батерията е обърната! Завърти я с R, така че + на батерията да е при червения +.";
+        }
+        return null;
+    }
+
     /// <summary>True when the CircuitPuzzle on this board is solved.</summary>
     public bool IsComplete()
     {

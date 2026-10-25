@@ -1,4 +1,4 @@
-using CatCircuit;
+﻿using CatCircuit;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -46,6 +46,7 @@ public class BreadboardSlot : CatInteractable
 
     private PickupableItem placedItem;
     private float rotationY;
+    private Vector3 itemCenterLocal;
 
     public string SlotId => string.IsNullOrEmpty(slotId) ? SanitizeId(gameObject.name) : slotId;
     public string SlotLabel => slotLabel;
@@ -57,17 +58,32 @@ public class BreadboardSlot : CatInteractable
     public bool RequireOrientation => requireOrientation;
     public ComponentData LegacyRequiredComponent => requiredComponent;
 
+    /// <summary>
+    /// How the part sits, for every slot (real parts have legs that must reach the contacts):
+    ///   at the reference angle            → Forward
+    ///   turned 180°                       → Reversed for polar parts (LED, battery), Forward for resistors / wires
+    ///   any other angle (sideways)        → NotSeated = open circuit
+    /// Reference = Correct Rotation Y when Require Orientation is on, otherwise the part's default slot angle.
+    /// </summary>
     public Seating CurrentSeating
     {
         get
         {
-            if (!requireOrientation) return Seating.Forward;
-            float d = Mathf.Abs(Mathf.DeltaAngle(rotationY, correctRotationY));
+            if (placedItem == null) return Seating.Forward;
+            float d = Mathf.Abs(Mathf.DeltaAngle(rotationY, ReferenceAngle(placedItem.Data)));
             if (d < 1f) return Seating.Forward;
-            if (Mathf.Abs(d - 180f) < 1f) return Seating.Reversed;
+            if (Mathf.Abs(d - 180f) < 1f) return IsPolar(placedItem.Data) ? Seating.Reversed : Seating.Forward;
             return Seating.NotSeated;
         }
     }
+
+    /// <summary>Rotation (Y) at which the part is connected the right way round.</summary>
+    public float ReferenceAngle(ComponentData data) =>
+        requireOrientation ? correctRotationY : (data != null ? data.defaultSlotRotation.y : 0f);
+
+    /// <summary>LEDs and batteries only work one way round; resistors and wires work both ways.</summary>
+    public static bool IsPolar(ComponentData data) =>
+        data != null && (data.Kind == PartKind.LED || data.Kind == PartKind.Battery);
 
     /// <summary>Edit-mode setup used by the editor tools.</summary>
     public void Configure(string id, Breadboard owner, bool orientation, float correctY, float step)
@@ -90,6 +106,7 @@ public class BreadboardSlot : CatInteractable
             if (boards.Length == 1) board = boards[0];
         }
         EnsureInteractionTrigger(1f);
+        gameObject.AddComponent<SlotPolarityMarker>().Init(this);   // shows + / − for LEDs and batteries
     }
 
     private void OnEnable()
@@ -164,11 +181,17 @@ public class BreadboardSlot : CatInteractable
         ComponentData data = item.Data;
 
         placedItem = item;
-        rotationY = Mathf.Repeat((data != null ? data.defaultSlotRotation.y : 0f) + extraRotationY, 360f);
+        // Snap to this slot's rotation steps around the reference angle, so the correct angle can always be reached.
+        float reference = ReferenceAngle(data);
+        float raw = (data != null ? data.defaultSlotRotation.y : 0f) + extraRotationY;
+        float step = Mathf.Max(1f, rotationStep);
+        rotationY = Mathf.Repeat(reference + Mathf.Round(Mathf.DeltaAngle(reference, raw) / step) * step, 360f);
 
         Vector3 offset = data != null ? data.slotPositionOffset : Vector3.zero;
         Vector3? scale = data != null && data.worldPrefab != null ? data.worldPrefab.transform.localScale : (Vector3?)null;
         item.EnterPlaced(transform, offset, VisualRotation(data), scale);
+        itemCenterLocal = VisualCenterLocal(item);
+        ApplyPlacedTransform();
 
         if (data != null && data.Kind == PartKind.LED)
         {
@@ -198,8 +221,35 @@ public class BreadboardSlot : CatInteractable
     private void SetRotation(float y)
     {
         rotationY = Mathf.Repeat(y, 360f);
-        if (placedItem != null) placedItem.transform.localRotation = VisualRotation(placedItem.Data);
+        ApplyPlacedTransform();
         if (board != null) board.MarkDirty();
+    }
+
+    /// <summary>Puts the part at the slot with its VISUAL centre (not the model pivot) over the slot, so it turns on the spot.</summary>
+    private void ApplyPlacedTransform()
+    {
+        if (placedItem == null) return;
+        ComponentData data = placedItem.Data;
+        Transform t = placedItem.transform;
+        Quaternion r = VisualRotation(data);
+        t.localRotation = r;
+        Vector3 offset = data != null ? data.slotPositionOffset : Vector3.zero;
+        Vector3 c = r * Vector3.Scale(t.localScale, itemCenterLocal);
+        t.localPosition = new Vector3(offset.x - c.x, offset.y, offset.z - c.z);
+    }
+
+    /// <summary>Centre of the part's renderers in its own local space.</summary>
+    private static Vector3 VisualCenterLocal(PickupableItem item)
+    {
+        Renderer[] rs = item.GetComponentsInChildren<Renderer>();
+        bool any = false;
+        Bounds b = default;
+        foreach (Renderer r in rs)
+        {
+            if (r is ParticleSystemRenderer || !r.enabled) continue;
+            if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+        }
+        return any ? item.transform.InverseTransformPoint(b.center) : Vector3.zero;
     }
 
     private Quaternion VisualRotation(ComponentData data)
@@ -255,10 +305,16 @@ public class BreadboardSlot : CatInteractable
 
     private string SeatingHint()
     {
-        if (!requireOrientation) return "";
+        if (placedItem == null) return "";
+        ComponentData data = placedItem.Data;
         switch (CurrentSeating)
         {
-            case Seating.NotSeated: return "\n(не е наместен – завърти го)";
+            case Seating.NotSeated:
+                return data != null && data.Kind == PartKind.Resistor
+                    ? "\n(крачетата не стигат контактите – завърти го)"
+                    : "\n(не е наместен – завърти го)";
+            case Seating.Reversed:
+                return data != null && data.Kind == PartKind.Battery ? "\n(батерията е обърната: + към +)" : "";
             default: return "";
         }
     }

@@ -96,10 +96,18 @@ namespace CatCircuit
             // The first solve happens when the scene starts – don't nag before the player did anything.
             if (evaluations++ == 0) return;
 
-            string hint = null;
-            foreach (CircuitHint h in CurrentStage.hints)
+            string hint = circuit.PlacementHint();   // sideways part / reversed battery first
+            if (hint == null)
             {
-                if (h.Applies(r, circuit)) { hint = h.message; break; }
+                foreach (CircuitHint h in CurrentStage.hints)
+                {
+                    if (h.Applies(r, circuit)) { hint = h.message; break; }
+                }
+            }
+            if (hint == null)
+            {
+                foreach (PartResult p in r.Leds)
+                    if (p.reversed) { hint = "LED-ът е обърнат – дългото краче (+) трябва да е при червения +. Завърти го с R."; break; }
             }
             if (hint != lastHint && !string.IsNullOrEmpty(hint))
             {

@@ -41,9 +41,28 @@ public class PlayerSpawner : MonoBehaviour
         // A CharacterController overrides transform changes while enabled.
         var cc = player.GetComponent<CharacterController>();
         if (cc != null) cc.enabled = false;
-        player.transform.position = position;
+        player.transform.position = LiftOutOfFloor(position, player.transform, cc);
         if (rotation.HasValue) player.transform.rotation = Quaternion.Euler(0f, rotation.Value.eulerAngles.y, 0f);
         if (cc != null) cc.enabled = true;
+    }
+
+    /// <summary>
+    /// If the spawn point is below the ground (e.g. an arrival point placed too low), put the cat's feet on the
+    /// ground instead of inside it.
+    /// </summary>
+    private static Vector3 LiftOutOfFloor(Vector3 position, Transform player, CharacterController cc)
+    {
+        float feetOffset = cc != null ? cc.center.y * player.lossyScale.y - cc.height * 0.5f * player.lossyScale.y : 0f;
+        float feet = position.y + feetOffset;
+        RaycastHit[] hits = Physics.RaycastAll(position + Vector3.up * 2f, Vector3.down, 6f, ~0, QueryTriggerInteraction.Ignore);
+        float ground = float.NegativeInfinity;
+        foreach (RaycastHit h in hits)
+        {
+            if (h.transform.IsChildOf(player)) continue;
+            if (h.point.y <= position.y + 1.5f && h.point.y > ground) ground = h.point.y;
+        }
+        if (!float.IsNegativeInfinity(ground) && feet < ground - 0.02f) position.y += ground - feet + 0.05f;
+        return position;
     }
 
     private static GameObject FindPlayer()

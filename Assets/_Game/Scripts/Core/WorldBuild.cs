@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -111,8 +111,11 @@ namespace CatCircuit
             return tmp;
         }
 
-        /// <summary>Highest point under (x, z) found by a downward ray, or fallbackY.</summary>
-        public static float GroundY(Vector3 above, float fallbackY, Transform ignore = null)
+        /// <summary>
+        /// Highest solid point under (x, z) that is at most <paramref name="maxAbove"/> above <paramref name="above"/>.y
+        /// (so roofs and porches above are ignored), or fallbackY.
+        /// </summary>
+        public static float GroundY(Vector3 above, float fallbackY, float maxAbove = 3f, Transform ignore = null)
         {
             Vector3 start = above + Vector3.up * 20f;
             RaycastHit[] hits = Physics.RaycastAll(start, Vector3.down, 60f, ~0, QueryTriggerInteraction.Ignore);
@@ -120,7 +123,7 @@ namespace CatCircuit
             foreach (RaycastHit h in hits)
             {
                 if (ignore != null && h.transform.IsChildOf(ignore)) continue;
-                if (h.point.y > best && h.point.y < above.y + 3f) best = h.point.y;
+                if (h.point.y > best && h.point.y < above.y + maxAbove) best = h.point.y;
             }
             return float.IsNegativeInfinity(best) ? fallbackY : best;
         }

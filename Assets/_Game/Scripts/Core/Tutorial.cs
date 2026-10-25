@@ -163,10 +163,9 @@ namespace CatCircuit
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
             float w = Screen.width / scale;
 
-            // Between the two top corner texts; on narrow screens move down below them.
+            // Centred, BELOW the two top corner texts (held item top-left, objective top-right) so it never covers them.
             float boxW = Mathf.Min(640f, w - 64f);
-            bool roomBetween = w - 2f * 560f >= boxW;
-            var box = new Rect((w - boxW) / 2f, roomBetween ? 24f : 170f, boxW, 128f);
+            var box = new Rect((w - boxW) / 2f, 250f, boxW, 128f);
 
             GUI.DrawTexture(box, panelTex);
             GUI.DrawTexture(new Rect(box.x, box.y, box.width, 5f), accentTex);

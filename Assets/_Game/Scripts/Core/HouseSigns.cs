@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -88,14 +88,20 @@ namespace CatCircuit
             // Where is the door? Use its collider (the trigger) if it has one.
             Vector3 basePos = door.transform.position;
             float top = basePos.y + 2f;
-            Collider col = door.GetComponentInChildren<Collider>();
+            Collider col = null;   // prefer the door's own (trigger) collider; ignore big ones like a whole house
+            foreach (Collider c in door.GetComponentsInChildren<Collider>())
+            {
+                Vector3 s = c.bounds.size;
+                if (Mathf.Max(s.x, s.z) > 6f) continue;
+                if (col == null || (c.isTrigger && !col.isTrigger)) col = c;
+            }
             if (col != null)
             {
                 Bounds b = col.bounds;
                 basePos = new Vector3(b.center.x, b.min.y, b.center.z);
                 top = Mathf.Max(b.max.y, b.min.y + 2f);
             }
-            basePos.y = WorldBuild.GroundY(basePos + Vector3.up, basePos.y);
+            basePos.y = WorldBuild.GroundY(basePos + Vector3.up, basePos.y, 1.2f);
 
             // "Outward" = towards where the player arrives when leaving the house.
             Vector3 outward = door.transform.forward;
@@ -157,7 +163,12 @@ namespace CatCircuit
                 beam.transform.position = beamPos + Vector3.up * 18f;
             }
 
-            BuildFlag(root, basePos + side * 1.4f + outward * 0.3f, color);
+            // Flag beside the door, on whichever side is free (not inside a wall).
+            Vector3 eye = basePos + Vector3.up * 1f + outward * 1.2f;
+            Vector3 flagPos = basePos + side * 1.4f + outward * 1.2f;
+            if (Physics.Linecast(eye, flagPos + Vector3.up * 1f, ~0, QueryTriggerInteraction.Ignore))
+                flagPos = basePos - side * 1.4f + outward * 1.2f;
+            BuildFlag(root, flagPos, basePos.y, color);
 
             return new Sign { house = house, root = root, halo = halo, arrow = arrow };
         }
@@ -185,11 +196,11 @@ namespace CatCircuit
             return arrow;
         }
 
-        private static void BuildFlag(Transform parent, Vector3 groundPos, Color color)
+        private static void BuildFlag(Transform parent, Vector3 groundPos, float doorFloorY, Color color)
         {
             var flag = new GameObject("Flag").transform;
             flag.SetParent(parent, true);
-            groundPos.y = WorldBuild.GroundY(groundPos + Vector3.up, groundPos.y);
+            groundPos.y = WorldBuild.GroundY(new Vector3(groundPos.x, doorFloorY + 1f, groundPos.z), doorFloorY, 1.2f);
             flag.position = groundPos;
             WorldBuild.Primitive(PrimitiveType.Cylinder, flag, new Vector3(0f, 1.3f, 0f), new Vector3(0.07f, 1.3f, 0.07f),
                                  WorldBuild.Unlit(new Color(0.25f, 0.22f, 0.2f)), "Pole");

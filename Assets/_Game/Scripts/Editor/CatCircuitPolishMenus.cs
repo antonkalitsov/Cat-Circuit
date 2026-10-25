@@ -43,7 +43,7 @@ namespace CatCircuit.EditorTools
             go.transform.position = view != null ? view.pivot : Vector3.zero;
             if (view != null)
             {
-                Vector3 back = -view.rotation * Vector3.forward;   // towards the Scene camera = into the room
+                Vector3 back = -(view.rotation * Vector3.forward);   // towards the Scene camera = into the room
                 back.y = 0f;
                 if (back.sqrMagnitude > 0.01f) go.transform.rotation = Quaternion.LookRotation(back.normalized);
             }

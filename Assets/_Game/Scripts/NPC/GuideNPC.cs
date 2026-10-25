@@ -171,6 +171,7 @@ namespace CatCircuit
             lines.Add($"Следващата е Къща {house} – „{HouseInfo.Title(house)}“.\n{HouseInfo.Lesson(house)}");
             lines.Add($"Търси {HouseInfo.ColorName(house)} знак с номер {house}\nи светещата стрелка над вратата.");
             if (house == 1) lines.Add("Вътре погледни схемата на стената –\nтя показва как да свържеш частите.");
+            if (house > 3 && HouseInfo.IsSolved(3)) lines.Add("Ако още не си го намерил – Спарки се крие в селото.\nДо него има дъска със закона на Ом.");
             return lines.ToArray();
         }
 

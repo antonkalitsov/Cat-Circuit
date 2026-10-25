@@ -236,6 +236,13 @@ public class CatNPC : CatInteractable
 
     public void ConfigureInfoNpc(int unlockPuzzle) => unlockedAfterPuzzle = unlockPuzzle;
 
+    /// <summary>Runtime: replaces an info NPC's lines (used to keep improved texts in code, see StoryTweaks).</summary>
+    public void SetInfoDialogue(string[] greeting, string[] unlocked)
+    {
+        if (greeting != null) greetingDialogue = greeting;
+        if (unlocked != null) unlockedDialogue = unlocked;
+    }
+
     public void ClearLegacy(bool clearUnlockedDialogue)
     {
         questToGive = null;

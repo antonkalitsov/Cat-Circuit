@@ -25,6 +25,7 @@ namespace CatCircuit
         private static readonly Color NoteColor = new Color(1f, 0.88f, 0.45f);
 
         private int house;
+        private bool ohmBoard;   // the "Ohm's law" board next to Sparky in the village
         private CircuitPuzzle puzzle;
         private Transform content;
         private Color houseColor;
@@ -40,6 +41,13 @@ namespace CatCircuit
         private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (mode != LoadSceneMode.Single) return;
+            if (scene.buildIndex == 0)
+            {
+                var ohm = new GameObject("OhmBoard").AddComponent<WallSchematic>();
+                ohm.house = 3;
+                ohm.ohmBoard = true;
+                return;
+            }
             int h = HouseInfo.FromScene(scene.name);
             if (h == 0) return;
             var go = new GameObject("WallSchematic");
@@ -52,6 +60,14 @@ namespace CatCircuit
             chalk = WorldBuild.Unlit(Chalk);
             mask = WorldBuild.Unlit(BoardColor);
             accent = WorldBuild.Unlit(houseColor);
+
+            if (ohmBoard)
+            {
+                if (!PlaceNextToSparky()) { Destroy(gameObject); return; }
+                BuildBoard();
+                Redraw();
+                return;
+            }
 
             foreach (CircuitPuzzle p in FindObjectsByType<CircuitPuzzle>(FindObjectsSortMode.None))
                 if (p.ProgressId == house) { puzzle = p; break; }
@@ -72,6 +88,9 @@ namespace CatCircuit
 
         // ------------------------------------------------------------------ placement
 
+        /// <summary>Board sizes tried, biggest first (1 = 2.4 x 1.6 m). The biggest that fits the wall wins.</summary>
+        private static readonly float[] Scales = { 3f, 2.6f, 2.2f, 1.9f, 1.6f, 1.35f, 1.15f, 1f };
+
         private void Place()
         {
             GameObject anchor = GameObject.Find("SchematicAnchor");
@@ -81,52 +100,90 @@ namespace CatCircuit
                 f.y = 0f;
                 transform.position = anchor.transform.position;
                 transform.rotation = Quaternion.LookRotation(f.sqrMagnitude > 0.01f ? -f.normalized : Vector3.forward);
+                float s = anchor.transform.lossyScale.x;
+                transform.localScale = Vector3.one * (s > 0.2f && Mathf.Abs(s - 1f) > 0.01f ? s : 2f);   // anchor scale = board size
                 return;
             }
 
             CircuitHost host = puzzle != null && puzzle.Circuit != null ? puzzle.Circuit : FindAnyObjectByType<CircuitHost>();
             Vector3 center = host != null ? host.transform.position : Vector3.zero;
-            float floor = WorldBuild.GroundY(center + Vector3.up * 0.5f, center.y);
+            float floor = WorldBuild.GroundY(center + Vector3.up * 0.5f, center.y, 1f);
             Vector3 eye = new Vector3(center.x, floor + 1.6f, center.z);
+            float ceiling = Physics.Raycast(eye, Vector3.up, out RaycastHit up, 20f, ~0, QueryTriggerInteraction.Ignore) ? up.point.y : floor + 6f;
 
-            float bestDist = float.MaxValue;
+            float bestScale = 0f, bestDist = float.MaxValue, bestY = 0f;
             RaycastHit best = default;
-            bool found = false;
             for (int i = 0; i < 8; i++)
             {
                 Vector3 dir = Quaternion.Euler(0f, i * 45f, 0f) * Vector3.forward;
-                if (!Physics.Raycast(eye, dir, out RaycastHit hit, 14f, ~0, QueryTriggerInteraction.Ignore)) continue;
-                if (Mathf.Abs(hit.normal.y) > 0.3f || hit.distance < 0.8f || hit.distance >= bestDist) continue;
-                if (hit.collider.GetComponentInParent<CatInteractable>() != null) continue;
-                if (NearDoor(hit.point) || !WallIsWide(hit)) continue;
-                best = hit;
-                bestDist = hit.distance;
-                found = true;
+                if (!Physics.Raycast(eye, dir, out RaycastHit hit, 16f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                if (Mathf.Abs(hit.normal.y) > 0.3f || hit.distance < 0.8f) continue;
+                if (hit.collider.GetComponentInParent<CatInteractable>() != null || NearDoor(hit.point)) continue;
+
+                foreach (float s in Scales)
+                {
+                    if (s < bestScale || (Mathf.Approximately(s, bestScale) && hit.distance >= bestDist)) break;
+                    float h = BoardH * s;
+                    float cy = Mathf.Max(floor + 1.6f, floor + 0.25f + h / 2f);       // bottom at least 25 cm above the floor
+                    if (cy + h / 2f > ceiling - 0.05f) cy = ceiling - 0.05f - h / 2f;    // ...and under the ceiling
+                    if (cy - h / 2f < floor + 0.1f) continue;                            // too tall for this room
+                    if (!WallFits(hit, BoardW * s, cy - hit.point.y, h)) continue;
+                    bestScale = s; bestDist = hit.distance; bestY = cy; best = hit;
+                    break;
+                }
             }
 
-            if (found)
+            if (bestScale > 0f)
             {
                 Vector3 n = best.normal;
                 n.y = 0f;
                 n.Normalize();
-                transform.position = new Vector3(best.point.x, floor + 1.6f, best.point.z) + n * 0.02f;
+                transform.position = new Vector3(best.point.x, bestY, best.point.z) + n * 0.03f;
                 transform.rotation = Quaternion.LookRotation(-n);
+                transform.localScale = Vector3.one * bestScale;
                 return;
             }
 
-            // No good wall: an easel next to the board, facing the room.
+            // No good wall: a big easel next to the board, facing the room.
             Vector3 toRoom = Vector3.forward;
             PlayerSpawner spawner = FindAnyObjectByType<PlayerSpawner>();
             if (spawner != null) { toRoom = spawner.DefaultSpawnPosition - center; toRoom.y = 0f; }
             if (toRoom.sqrMagnitude < 0.01f) toRoom = Vector3.forward;
             toRoom.Normalize();
             Vector3 side = Vector3.Cross(Vector3.up, toRoom);
-            Vector3 pos = center + side * 2.2f;
-            pos.y = WorldBuild.GroundY(pos + Vector3.up, floor) + 1.45f;
-            transform.position = pos;
-            transform.rotation = Quaternion.LookRotation(-toRoom);
-            transform.localScale = Vector3.one * 0.8f;
-            BuildEasel();
+            PlaceOnEasel(center + side * 3f, toRoom, Mathf.Min(1.8f, (ceiling - floor - 0.4f) / BoardH), floor);
+        }
+
+        /// <summary>Village: an easel beside Sparky (the info NPC unlocked by puzzle 3), facing the same way he does.</summary>
+        private bool PlaceNextToSparky()
+        {
+            CatNPC sparky = null;
+            foreach (CatNPC n in FindObjectsByType<CatNPC>(FindObjectsSortMode.None))
+                if (n.Puzzle == null && (n.NpcName == "Спарки" || n.UnlockedAfterPuzzle == 3)) { sparky = n; break; }
+            if (sparky == null) return false;
+
+            Vector3 front = sparky.transform.forward;
+            front.y = 0f;
+            if (front.sqrMagnitude < 0.01f) front = Vector3.forward;
+            front.Normalize();
+            Vector3 side = Vector3.Cross(Vector3.up, front);
+            Vector3 eye = sparky.transform.position + Vector3.up;
+            float scale = 1.6f, offset = 1.3f + BoardW * scale / 2f;
+            Vector3 pos = sparky.transform.position + side * offset;
+            if (Physics.Linecast(eye, pos + Vector3.up, ~0, QueryTriggerInteraction.Ignore)) pos = sparky.transform.position - side * offset;
+            PlaceOnEasel(pos + front * 0.3f, front, scale, sparky.transform.position.y);
+            return true;
+        }
+
+        /// <summary>Free-standing board at <paramref name="pos"/> (ground found below), front facing <paramref name="toViewer"/>.</summary>
+        private void PlaceOnEasel(Vector3 pos, Vector3 toViewer, float scale, float floorGuess)
+        {
+            scale = Mathf.Max(1f, scale);
+            float ground = WorldBuild.GroundY(new Vector3(pos.x, floorGuess + 1f, pos.z), floorGuess, 1.5f);
+            transform.localScale = Vector3.one * scale;
+            transform.position = new Vector3(pos.x, ground + 0.5f + BoardH * scale / 2f, pos.z);
+            transform.rotation = Quaternion.LookRotation(-toViewer);
+            BuildEasel(0.5f / scale + BoardH / 2f);
         }
 
         private static bool NearDoor(Vector3 p)
@@ -140,30 +197,30 @@ namespace CatCircuit
             return false;
         }
 
-        /// <summary>Is there wall on both sides of the hit for the whole board width?</summary>
-        private static bool WallIsWide(RaycastHit hit)
+        /// <summary>Is there flat wall behind the whole board (corners + edge middles)?</summary>
+        private static bool WallFits(RaycastHit hit, float width, float centerDy, float height)
         {
             Vector3 n = hit.normal;
             n.y = 0f;
             n.Normalize();
             Vector3 along = Vector3.Cross(Vector3.up, n);
-            foreach (float s in new[] { -BoardW * 0.5f, BoardW * 0.5f })
-            {
-                Vector3 from = hit.point + n * 0.4f + along * s;
-                if (!Physics.Raycast(from, -n, out RaycastHit h2, 0.8f, ~0, QueryTriggerInteraction.Ignore)) return false;
-                if (Mathf.Abs(h2.distance - 0.4f) > 0.15f) return false;
-            }
+            foreach (float sx in new[] { -0.5f, 0f, 0.5f })
+                foreach (float sy in new[] { -0.5f, 0.5f })
+                {
+                    Vector3 from = hit.point + n * 0.4f + along * (sx * width) + Vector3.up * (centerDy + sy * height);
+                    if (!Physics.Raycast(from, -n, out RaycastHit h2, 0.8f, ~0, QueryTriggerInteraction.Ignore)) return false;
+                    if (Mathf.Abs(h2.distance - 0.4f) > 0.15f) return false;
+                }
             return true;
         }
 
-        private void BuildEasel()
+        /// <summary>Two legs from the board down to the ground (<paramref name="drop"/> = board centre to ground, board units).</summary>
+        private void BuildEasel(float drop)
         {
             Material wood = WorldBuild.Unlit(new Color(0.45f, 0.3f, 0.18f));
+            float length = drop + BoardH / 2f;
             foreach (float x in new[] { -0.9f, 0.9f })
-            {
-                GameObject leg = WorldBuild.Primitive(PrimitiveType.Cube, transform, new Vector3(x, -0.9f, 0.08f), new Vector3(0.06f, 2.1f, 0.06f), wood, "Leg");
-                leg.transform.localRotation = Quaternion.Euler(-8f, 0f, 0f);
-            }
+                WorldBuild.Primitive(PrimitiveType.Cube, transform, new Vector3(x, BoardH / 2f - length / 2f, 0.06f), new Vector3(0.06f, length, 0.05f), wood, "Leg");
         }
 
         // ------------------------------------------------------------------ board
@@ -180,7 +237,7 @@ namespace CatCircuit
 
             // House number badge in the corner – same colour and number as the sign outside.
             WorldBuild.Disc(transform, new Vector3(-BoardW / 2f + 0.14f, BoardH / 2f - 0.14f, -0.03f), 0.13f, 0.02f, accent, "Badge");
-            TextMeshPro n = WorldBuild.Text(transform, house.ToString(), 2.2f, new Color(0.08f, 0.08f, 0.1f),
+            TextMeshPro n = WorldBuild.Text(transform, ohmBoard ? "Ω" : house.ToString(), 2.2f, new Color(0.08f, 0.08f, 0.1f),
                                             new Vector3(-BoardW / 2f + 0.14f, BoardH / 2f - 0.15f, -0.045f), TextAlignmentOptions.Center, 0.3f);
             n.fontStyle = FontStyles.Bold;
         }
@@ -191,6 +248,7 @@ namespace CatCircuit
             content = new GameObject("Content").transform;
             content.SetParent(transform, false);
 
+            if (ohmBoard) { DrawOhm(); return; }
             Title($"Къща {house} – {HouseInfo.Title(house)}");
             switch (house)
             {
@@ -310,6 +368,41 @@ namespace CatCircuit
             }
             Label(code1, new Vector2(0f, -0.5f), 0.75f, NoteColor);
             Label(code2, new Vector2(0f, -0.62f), 0.75f, NoteColor);
+        }
+
+        /// <summary>Sparky's board: U = I · R, the memory triangle, units and the House 3 example.</summary>
+        private void DrawOhm()
+        {
+            Title("Законът на Ом");
+            TextMeshPro big = WorldBuild.Text(content, "U = I · R", 1.6f, NoteColor, new Vector3(-0.6f, 0.44f, ZSymbol), TextAlignmentOptions.Center, 1f);
+            big.fontStyle = FontStyles.Bold;
+
+            // Memory triangle: cover what you look for. U on top, I and R below.
+            Vector2 a = new Vector2(-1.0f, -0.38f), b = new Vector2(-0.2f, -0.38f), c = new Vector2(-0.6f, 0.3f);
+            Bar(a, b, ZSymbol, chalk); Bar(b, c, ZSymbol, chalk); Bar(c, a, ZSymbol, chalk);
+            float midY = -0.06f;
+            float halfAtMid = 0.4f * (0.3f - midY) / 0.68f;
+            Bar(new Vector2(-0.6f - halfAtMid, midY), new Vector2(-0.6f + halfAtMid, midY), ZSymbol, chalk);
+            Bar(new Vector2(-0.6f, midY), new Vector2(-0.6f, -0.38f), ZSymbol, chalk);
+            Label("U", new Vector2(-0.6f, 0.07f), 1.3f, Chalk, 0.3f);
+            Label("I", new Vector2(-0.77f, -0.24f), 1.3f, Chalk, 0.3f);
+            Label("R", new Vector2(-0.43f, -0.24f), 1.3f, Chalk, 0.3f);
+            Label("Закрий с пръст това, което търсиш:\nI = U / R     R = U / I", new Vector2(-0.6f, -0.52f), 0.62f, NoteColor, 1.1f);
+
+            const string text =
+                "<b>U</b> – напрежение, във волтове (V)\n" +
+                "     колко силно батерията бута тока\n" +
+                "<b>I</b> – ток, в ампери (A)\n" +
+                "     1 mA = 0,001 A\n" +
+                "<b>R</b> – съпротивление, в омове (Ω)\n" +
+                "     колко резисторът пречи на тока\n" +
+                "\n" +
+                "<b>Пример – Къща 3:</b>\n" +
+                "12 V – 3 LED × 1,8 V = 6,6 V за R\n" +
+                "I = 6,6 V / 1000 Ω = 6,6 mA\n" +
+                "6,6 mA е между 3 и 25 mA – светят!";
+            TextMeshPro t = WorldBuild.Text(content, text, 0.6f, Chalk, new Vector3(0.58f, 0.36f, ZSymbol), TextAlignmentOptions.TopLeft, 1.15f);
+            t.richText = true;
         }
 
         // ------------------------------------------------------------------ symbols

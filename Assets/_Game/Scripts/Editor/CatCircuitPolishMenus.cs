@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
@@ -51,7 +51,8 @@ namespace CatCircuit.EditorTools
             EditorSceneManager.MarkSceneDirty(go.scene);
             Selection.activeGameObject = go;
             Debug.Log("[CatCircuit] SchematicAnchor placed. Put it on the wall at about 1.6 m (centre of the board), " +
-                      "with its blue Z arrow pointing INTO the room. The 2.4 x 1.6 m chalkboard appears there in Play mode.");
+                      "with its blue Z arrow pointing INTO the room. The chalkboard appears there in Play mode. " +
+                      "Its size = the anchor's scale (1 = 2.4 x 1.6 m; an unscaled anchor gives a 2x board).");
         }
 
         private static void PlaceAtPivot(GameObject go)

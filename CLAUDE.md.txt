@@ -1,4 +1,4 @@
-CatCircuit — Project Context for Claude
+﻿CatCircuit — Project Context for Claude
 ========================================
 (Rewritten 2026-09-23 after the "scalable / plug-and-play" refactor. Programmer guide: Assets/_Game/README_CatCircuit.md)
 
@@ -87,6 +87,14 @@ Circuits + stages live in Editor/CatCircuitRecipes.cs.
 
 UPGRADE STATUS
 --------------
+2026-10-25 (2nd round, same branch): BreadboardSlot seating for ALL slots: reference angle (Correct Rotation Y if Require
+Orientation, else part's default angle); 180° = Reversed for LED/battery, Forward for resistor/wire; other angles = NotSeated.
+Placement snaps to the slot's rotation step; parts turn around their renderer-bounds centre. Breadboard/SlotPolarityMarker
+shows red + / blue − (battery + = model +Y; LED long leg = model +X after OBJ X-flip, re-checked from the mesh if readable).
+CircuitHost.PlacementHint (Breadboard: not seated / battery reversed) before stage hints; generic reversed-LED hint.
+Schematics scale to the wall (up to 3x, ceiling-aware; anchor scale = size). Sparky: Ohm board (easel beside him) + rewritten
+lines and Old Tom's pointer to him in Core/StoryTweaks (runtime, no scene edit). House 3 title = 'Резистори'. Tutorial box
+at y=250 (below corner texts). HouseSigns: flag on the free side; PlayerSpawner lifts the cat out of the floor.
 2026-10-25 branch polish-for-video (one commit per feature, pushed, NOT merged): all runtime-built, no scene edits.
 Core/HouseInfo (colour/title/lesson per house, NextUnsolved, PlayerPrefs 'cc_guide_intro'), Core/WorldBuild (unlit/additive
 materials, primitives w/o colliders, 3D TMP text with UIManager.Font), Core/Billboard. Core/HouseSigns (village, buildIndex 0):

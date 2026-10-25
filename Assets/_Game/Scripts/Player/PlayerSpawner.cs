@@ -9,6 +9,9 @@ public class PlayerSpawner : MonoBehaviour
     [Header("Default Spawn (if nothing else applies)")]
     [SerializeField] private Vector3 defaultSpawnPosition = Vector3.zero;
 
+    /// <summary>Where a new game starts in this scene (used e.g. to place the village guide).</summary>
+    public Vector3 DefaultSpawnPosition => defaultSpawnPosition;
+
     private void Start()
     {
         GameObject player = FindPlayer();

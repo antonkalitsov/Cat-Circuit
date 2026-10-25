@@ -44,7 +44,11 @@ namespace CatCircuit
 
         public static bool GuideIntroHeard => PlayerPrefs.GetInt(GuideIntroKey, 0) == 1;
 
+        private static readonly string[] colorNames = { "жълтия", "оранжевия", "червения", "лилавия", "синия" };
+
         public static bool IsHouse(int house) => house >= 1 && house <= Count;
+        /// <summary>"жълтия" … – for sentences like "Търси жълтия знак".</summary>
+        public static string ColorName(int house) => IsHouse(house) ? colorNames[house - 1] : "";
         public static Color Color(int house) => IsHouse(house) ? colors[house - 1] : UnityEngine.Color.white;
         public static string Title(int house) => IsHouse(house) ? titles[house - 1] : "";
         public static string Lesson(int house) => IsHouse(house) ? lessons[house - 1] : "";

@@ -230,6 +230,9 @@ public class BreadboardSlot : CatInteractable
         float raw = (data != null ? data.defaultSlotRotation.y : 0f) + extraRotationY;
         float snap = Wiring(data).found ? 180f : Mathf.Max(1f, rotationStep);
         rotationY = Mathf.Repeat(reference + Mathf.Round(Mathf.DeltaAngle(reference, raw) / snap) * snap, 360f);
+        // Polarity lesson slots (Require Orientation, e.g. House 2): the part always goes in the wrong way round,
+        // so the player has to turn it with R and find out why the + side matters.
+        if (requireOrientation && IsPolar(data)) rotationY = Mathf.Repeat(reference + 180f, 360f);
 
         Vector3 offset = data != null ? data.slotPositionOffset : Vector3.zero;
         Vector3? scale = data != null && data.worldPrefab != null ? data.worldPrefab.transform.localScale : (Vector3?)null;

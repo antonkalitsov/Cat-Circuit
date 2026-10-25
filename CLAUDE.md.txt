@@ -87,6 +87,22 @@ Circuits + stages live in Editor/CatCircuitRecipes.cs.
 
 UPGRADE STATUS
 --------------
+2026-10-25 branch polish-for-video (one commit per feature, pushed, NOT merged): all runtime-built, no scene edits.
+Core/HouseInfo (colour/title/lesson per house, NextUnsolved, PlayerPrefs 'cc_guide_intro'), Core/WorldBuild (unlit/additive
+materials, primitives w/o colliders, 3D TMP text with UIManager.Font), Core/Billboard. Core/HouseSigns (village, buildIndex 0):
+numbered disc + title over every House door, flag, tick when solved, next house = halo + arrow + beam; sets village objective.
+NPC/GuideNPC "Дядо Ампер": spawned ~4 m in front of PlayerSpawner.DefaultSpawnPosition unless one is in the scene (menu
+CatCircuit ▸ Create ▸ Village guide); clones a CatNPC's renderers (tinted) + miner's hat, intro then next-house hints;
+telemetry guide_talk. Core/MusicPlayer: generated 80 BPM song, 8-bar segments via AudioClip.Create in a coroutine,
+2 AudioSources, ducks on GameUI.DialogueVisible / CodeTerminal; added by GameAudio unless SoundLibrary.music is set.
+PauseMenu: title screen (big name, animated IMGUI circuit, version, notice), Settings page 800x980 with sensitivity /
+invert Y (Core/CameraSettings → CinemachineInputAxisController gains, re-applied per scene), FPS, text backgrounds,
+"Покажи отново съветите" (GameSettings.ResetTips), web fullscreen on MouseDown, ResetToDefaults re-applies quality/fullscreen.
+Core/WallSchematic (House1..5): chalkboard 2.4x1.6 m, IEC symbols, frame in house colour, House 5 redraws on StageCompleted;
+"SchematicAnchor" object wins (blue Z into the room; menu CatCircuit ▸ Create ▸ Schematic anchor), else nearest wide wall
+at 1.6 m not near a door, else easel. docs/design-decisions.md = teaching rationale for the conference video.
+Compile check on this PC: Unity's Roslyn at D:\uni\Editor\Data (DotNetSdkRoslyn/csc.dll + NetCoreRuntime/dotnet.exe) with
+the references from Assembly-CSharp(.Editor).csproj, run from the project root.
 2026-10-11 GitHub: README.md at the root (public-facing overview). Remote origin = https://github.com/antonkalitsov/Cat-Circuit.git
 (branch main, NOT pushed yet – owner pushes after deciding about Asset Store packs in a public repo). 'Claude outputs/' is git-ignored.
 2026-10-11 (thesis month 1, week 3): web size + FPS + House 1 tutorial. Local git repo created (no remote): commit 1 = snapshot

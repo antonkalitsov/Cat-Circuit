@@ -24,8 +24,17 @@ The game is in Bulgarian.
 - **CircuitScript**: a tiny circuit language with English *and* Bulgarian keywords
   (`battery/батерия`, `resistor/резистор`, `led/лед`, `switch/ключ`, `wire/жица`), and errors in Bulgarian with line numbers.
   The code terminal also shows a "multimeter" read-out (current through each LED and resistor).
+- **Easy to find your way**: every house door in the village has a big numbered sign in the house colour
+  (1 yellow, 2 orange, 3 red, 4 purple, 5 blue) with a short title; solved houses get a green tick, the next one a
+  light beam and a bouncing arrow. The objective says "Следваща: Къща N".
+- **Village guide "Дядо Ампер"**: welcomes the player, explains the goal and the keys, and later says which house is next.
+- **Circuit schematic on a wall of every house**: a chalkboard with that house's circuit in IEC / БДС school symbols
+  (dashed boxes = the places to fill); in House 5 it follows the current task and shows the matching code.
+- **Generated background music**: a calm song synthesized at runtime (no audio files), never exactly the same.
 - **Save / continue**: solved puzzles are saved (PlayerPrefs, also works in the browser).
-- **Title menu**: Продължи (n/5), Нова игра, Управление, Настройки, Кредити; pause menu on Esc.
+- **Title screen + menu**: Продължи (n/5), Нова игра, Управление, Настройки, Кредити; pause menu on Esc.
+  Settings: volumes (incl. music), mouse sensitivity, invert Y, graphics quality, fullscreen (also on the web),
+  FPS counter, text backgrounds, statistics on/off, "show the tips again", defaults.
 - **House 1 tutorial**: short first-time tips that advance when the player actually does each step (Tab skips).
 - **Teacher unlock**: press **F9** on the title menu and enter the teacher code to jump straight to any house.
 - **Anonymous telemetry** (for the thesis evaluation): stages, hints, short circuits, code builds… No names and nothing
@@ -56,7 +65,10 @@ The game is in Bulgarian.
    The title menu appears; untick **CatCircuit ▸ Show main menu in Play Mode** to skip it while testing.
 
 Useful editor menus: **CatCircuit ▸ Reset saved progress**, **CatCircuit ▸ Reset tutorial and first-start hints**,
-**CatCircuit ▸ Validate open scene**.
+**CatCircuit ▸ Validate open scene**, **CatCircuit ▸ Create ▸ Village guide** (fixed position for Дядо Ампер),
+**CatCircuit ▸ Create ▸ Schematic anchor** (fixed wall position for a house's schematic).
+
+Teaching rationale for every design choice: [docs/design-decisions.md](docs/design-decisions.md) (Bulgarian).
 
 ## Building
 
@@ -76,13 +88,15 @@ Assets/_Game/
   Scenes/        Outside (village, index 0), House1 … House5
   Scripts/
     Core/        GameProgress + GameSave, PauseMenu (title + pause), UIManager/GameUI, UIText (all short UI strings),
-                 GameAudio (synthesized SFX), GameSettings, Telemetry, Tutorial, ControlsHint, FpsCounter, EndGameScreen
+                 GameAudio (synthesized SFX), MusicPlayer (generated music), GameSettings + CameraSettings, Telemetry,
+                 Tutorial, ControlsHint, FpsCounter, EndGameScreen, HouseInfo + HouseSigns (village signs),
+                 WallSchematic (chalkboard diagrams), WorldBuild + Billboard (runtime 3D helpers)
     Player/      Player, PlayerCarry (the cat's mouth), PlayerInteractor (E/R/Q), spawner
     Interaction/ CatInteractable (base of everything you press E on), PickupableItem, SceneTransition (doors)
     Circuit/     CircuitScript (language), CircuitSolver (nodal analysis), CircuitHost, ComponentData, LEDLight
     Breadboard/  Breadboard, BreadboardSlot
     Puzzles/     CircuitPuzzle, CircuitConditions (stages, conditions, hints)
-    NPC/         CatNPC (quest flow)
+    NPC/         CatNPC (quest flow), GuideNPC (Дядо Ампер in the village)
     CodeCircuit/ CodeTerminal, CodeCircuitBuilder (code → 3D circuit), CircuitSwitch
     Editor/      build + web tools, create menus, validator, inspectors, recipes (every house's circuit and stages)
   prefabs/       parts, boards, characters, environment

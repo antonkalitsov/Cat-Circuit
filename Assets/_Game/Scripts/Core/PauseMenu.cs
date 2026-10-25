@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
@@ -37,8 +37,11 @@ namespace CatCircuit
         private bool teacherWrong;
         private string teacherInput = "";
 
-        private GUIStyle titleStyle, heroStyle, buttonStyle, labelStyle, centerStyle, smallStyle, valueStyle, fieldStyle, smallButtonStyle;
-        private Texture2D overlayTex, panelTex, buttonTex, buttonHoverTex, accentTex;
+        private bool tipsReset;
+
+        private GUIStyle titleStyle, heroStyle, heroShadowStyle, subtitleStyle, versionStyle, buttonStyle, labelStyle, centerStyle, smallStyle,
+                         valueStyle, fieldStyle, smallButtonStyle;
+        private Texture2D overlayTex, titleOverlayTex, panelTex, buttonTex, buttonHoverTex, accentTex, wireTex, dotTex, glowTex;
 
         public static bool IsOpen => instance != null && instance.open;
 
@@ -251,11 +254,22 @@ namespace CatCircuit
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
             float w = Screen.width / scale;
 
-            GUI.DrawTexture(new Rect(0, 0, w, 1080), overlayTex);
+            bool titleScreen = titleMode && page == Page.Main;
+            GUI.DrawTexture(new Rect(0, 0, w, 1080), titleScreen ? titleOverlayTex : overlayTex);
 
-            float titleH = TeacherMode || teacherBoxOpen ? 920 : 820;   // the teacher parts need more room
-            float panelW = 640, panelH = page == Page.Main && titleMode ? titleH : 700;
-            var panel = new Rect((w - panelW) / 2f, (1080 - panelH) / 2f, panelW, panelH);
+            Rect panel;
+            if (titleScreen)
+            {
+                DrawTitleHeader(w);
+                float h = TeacherMode || teacherBoxOpen ? 640 : 520;   // the teacher parts need more room
+                panel = new Rect((w - 600) / 2f, 380, 600, h);
+            }
+            else
+            {
+                bool settings = page == Page.Settings;
+                float panelW = settings ? 800 : 640, panelH = settings ? 980 : 700;
+                panel = new Rect((w - panelW) / 2f, (1080 - panelH) / 2f, panelW, panelH);
+            }
             GUI.DrawTexture(panel, panelTex);
             GUI.DrawTexture(new Rect(panel.x, panel.y, panel.width, 6), accentTex);
 
@@ -270,15 +284,74 @@ namespace CatCircuit
                 case Page.Credits: DrawCredits(); break;
             }
             GUILayout.EndArea();
+            if (titleScreen) DrawTitleFooter(w);
             GUI.matrix = old;
+        }
+
+        // ------------------------------------------------------------------ title screen
+
+        /// <summary>Big game name + a little animated circuit: electrons run around a loop and light an LED.</summary>
+        private void DrawTitleHeader(float w)
+        {
+            const string name = "Котаракът електротехник";
+            GUI.Label(new Rect(4, 84, w, 110), name, heroShadowStyle);
+            GUI.Label(new Rect(0, 80, w, 110), name, heroStyle);
+            GUI.Label(new Rect(0, 186, w, 40), "образователна игра за електрически вериги", subtitleStyle);
+
+            float loopW = 640f, loopH = 74f;
+            float x0 = (w - loopW) / 2f, y0 = 256f;
+            float t = Time.unscaledTime;
+            const float wire = 4f;
+
+            // Wires: top, bottom, the right side (to the LED) and the left side broken by the battery.
+            GUI.DrawTexture(new Rect(x0, y0, loopW, wire), wireTex);
+            GUI.DrawTexture(new Rect(x0, y0 + loopH, loopW + wire, wire), wireTex);
+            GUI.DrawTexture(new Rect(x0 + loopW, y0, wire, loopH), wireTex);
+            GUI.DrawTexture(new Rect(x0, y0, wire, 24f), wireTex);
+            GUI.DrawTexture(new Rect(x0, y0 + 50f, wire, loopH - 50f), wireTex);
+            GUI.DrawTexture(new Rect(x0 - 22f, y0 + 26f, 48f, 5f), wireTex);   // battery: long plate (+)
+            GUI.DrawTexture(new Rect(x0 - 11f, y0 + 41f, 26f, 8f), wireTex);   // short plate (−)
+
+            // Electrons running around the loop.
+            float perimeter = 2f * (loopW + loopH);
+            for (int i = 0; i < 14; i++)
+            {
+                float s = Mathf.Repeat(t * 110f + i * perimeter / 14f, perimeter);
+                Vector2 p = PointOnLoop(s, loopW, loopH);
+                if (p.x < 2f && p.y > 20f && p.y < 54f) continue;   // not inside the battery gap
+                GUI.DrawTexture(new Rect(x0 + p.x - 3f, y0 + p.y - 3f, 10f, 10f), dotTex);
+            }
+
+            // A glowing LED on the right side.
+            float glow = 70f + 14f * Mathf.Sin(t * 3f);
+            var c = new Vector2(x0 + loopW + 2f, y0 + loopH * 0.5f);
+            Color oldColor = GUI.color;
+            GUI.color = new Color(1f, 0.75f, 0.2f, 0.9f);
+            GUI.DrawTexture(new Rect(c.x - glow / 2f, c.y - glow / 2f, glow, glow), glowTex);
+            GUI.color = new Color(1f, 0.95f, 0.7f, 1f);
+            GUI.DrawTexture(new Rect(c.x - 13f, c.y - 13f, 26f, 26f), glowTex);
+            GUI.color = oldColor;
+        }
+
+        private static Vector2 PointOnLoop(float s, float lw, float lh)
+        {
+            if (s < lw) return new Vector2(s, 0f);                          // top, left → right
+            s -= lw;
+            if (s < lh) return new Vector2(lw, s);                          // right side, down (through the LED)
+            s -= lh;
+            if (s < lw) return new Vector2(lw - s, lh);                     // bottom, right → left
+            s -= lw;
+            return new Vector2(0f, lh - s);                                 // left side, up (through the battery)
+        }
+
+        private void DrawTitleFooter(float w)
+        {
+            GUI.Label(new Rect(24, 1080 - 44, 400, 30), "версия " + Application.version, versionStyle);
+            GUI.Label(new Rect(0, 1080 - 44, w, 30), "Играта пази анонимна статистика (без имена). Може да се изключи в Настройки.", smallStyle);
         }
 
         private void DrawTitle()
         {
-            GUILayout.Label("Котаракът електротехник", heroStyle);
-            GUILayout.Label("образователна игра за електрически вериги", smallStyle);
-            GUILayout.Space(20);
-
             bool hasSave = GameSave.HasSave;
             if (hasSave)
             {
@@ -302,7 +375,6 @@ namespace CatCircuit
             if (teacherBoxOpen) DrawTeacherCodeBox();
             if (TeacherMode) DrawTeacherJumps();
             GUILayout.FlexibleSpace();
-            GUILayout.Label("Играта пази анонимна статистика (без имена). Може да се изключи в Настройки.", smallStyle);
         }
 
         /// <summary>F9 box: the teacher types the code (Enter or "Отключи").</summary>
@@ -366,16 +438,20 @@ namespace CatCircuit
         private void DrawSettings()
         {
             GUILayout.Label("Настройки", titleStyle);
-            GUILayout.Space(10);
+            GUILayout.Space(6);
 
             float v;
             if ((v = Slider("Сила на звука", GameSettings.MasterVolume)) != GameSettings.MasterVolume) GameSettings.MasterVolume = v;
             if ((v = Slider("Звукови ефекти", GameSettings.SfxVolume)) != GameSettings.SfxVolume) GameSettings.SfxVolume = v;
             if (GameAudio.HasMusic && (v = Slider("Музика", GameSettings.MusicVolume)) != GameSettings.MusicVolume) GameSettings.MusicVolume = v;
+            float sens = GameSettings.MouseSensitivity;
+            if ((v = Slider("Чувствителност на мишката", sens, 0.2f, 2f, sens.ToString("0.0") + "x")) != sens) GameSettings.MouseSensitivity = v;
 
-            GUILayout.Space(10);
+            if (ToggleRow("Обърни вертикалата (мишка)", GameSettings.InvertY)) GameSettings.InvertY = !GameSettings.InvertY;
+
+            GUILayout.Space(6);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Качество на графиката", labelStyle, GUILayout.Width(300));
+            GUILayout.Label("Качество на графиката", labelStyle, GUILayout.Width(LabelWidth));
             string[] names = QualitySettings.names;
             int q = QualitySettings.GetQualityLevel();
             if (GUILayout.Button("<", buttonStyle, GUILayout.Width(50), GUILayout.Height(44)) && q > 0) { GameSettings.Quality = q - 1; Click(); }
@@ -383,31 +459,53 @@ namespace CatCircuit
             if (GUILayout.Button(">", buttonStyle, GUILayout.Width(50), GUILayout.Height(44)) && q < names.Length - 1) { GameSettings.Quality = q + 1; Click(); }
             GUILayout.EndHorizontal();
 
-            GUILayout.Space(10);
+            // Fullscreen: a browser only allows it while the mouse button is being pressed, so on the web
+            // it reacts on mouse DOWN (Unity then switches on the following mouse up of the same click).
+            GUILayout.Space(6);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Цял екран", labelStyle, GUILayout.Width(300));
-            if (GUILayout.Button(Screen.fullScreen ? "Да" : "Не", buttonStyle, GUILayout.Width(120), GUILayout.Height(44)))
-            {
-                GameSettings.Fullscreen = !Screen.fullScreen;
-                Click();
-            }
+            GUILayout.Label("Цял екран", labelStyle, GUILayout.Width(LabelWidth));
+            Event e = Event.current;
+            EventType before = e.type;
+            Vector2 mouse = e.mousePosition;
+            bool fullscreenClicked = GUILayout.Button(Screen.fullScreen ? "Да" : "Не", buttonStyle, GUILayout.Width(120), GUILayout.Height(44));
+#if UNITY_WEBGL && !UNITY_EDITOR
+            fullscreenClicked = before == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(mouse);
+#endif
             GUILayout.EndHorizontal();
+            if (fullscreenClicked) { GameSettings.Fullscreen = !Screen.fullScreen; Click(); }
+
+            if (ToggleRow("Показвай FPS (F3)", GameSettings.ShowFps)) GameSettings.ShowFps = !GameSettings.ShowFps;
+            if (ToggleRow("Фон зад текстовете", GameSettings.TextBackgrounds)) GameSettings.TextBackgrounds = !GameSettings.TextBackgrounds;
+            if (ToggleRow("Анонимна статистика", GameSettings.Telemetry)) GameSettings.Telemetry = !GameSettings.Telemetry;
 
             GUILayout.Space(10);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Анонимна статистика", labelStyle, GUILayout.Width(300));
-            if (GUILayout.Button(GameSettings.Telemetry ? "Да" : "Не", buttonStyle, GUILayout.Width(120), GUILayout.Height(44)))
+            if (Button(tipsReset ? "Съветите ще се покажат отново" : "Покажи отново съветите"))
             {
-                GameSettings.Telemetry = !GameSettings.Telemetry;
+                GameSettings.ResetTips();
+                tipsReset = true;
+                HouseSigns.RefreshObjective();
                 Click();
             }
-            GUILayout.EndHorizontal();
 
             GUILayout.FlexibleSpace();
             GUILayout.BeginHorizontal();
             if (Button("Стандартни")) { GameSettings.ResetToDefaults(); Click(); }
-            if (Button("Назад")) { GameSettings.Save(); page = Page.Main; Click(); }
+            if (Button("Назад")) { GameSettings.Save(); page = Page.Main; tipsReset = false; Click(); }
             GUILayout.EndHorizontal();
+        }
+
+        private const float LabelWidth = 380f;
+
+        /// <summary>A "label …… Да/Не" row. Returns true when the button was clicked.</summary>
+        private bool ToggleRow(string label, bool value)
+        {
+            GUILayout.Space(6);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, labelStyle, GUILayout.Width(LabelWidth));
+            bool clicked = GUILayout.Button(value ? "Да" : "Не", buttonStyle, GUILayout.Width(120), GUILayout.Height(44));
+            GUILayout.EndHorizontal();
+            if (clicked) Click();
+            return clicked;
         }
 
         private void DrawControls()
@@ -431,6 +529,7 @@ namespace CatCircuit
             GUILayout.Label("Дипломна работа", centerStyle);
             if (!string.IsNullOrEmpty(Author)) GUILayout.Label(Author, valueStyle);
             GUILayout.Space(16);
+            GUILayout.Label("Музиката и звуците са създадени с код в самата игра.", smallStyle);
             GUILayout.Label("Направена с Unity", smallStyle);
             GUILayout.FlexibleSpace();
             if (Button("Назад")) { page = Page.Main; Click(); }
@@ -446,15 +545,18 @@ namespace CatCircuit
             GUILayout.EndHorizontal();
         }
 
-        private float Slider(string label, float value)
+        private float Slider(string label, float value) => Slider(label, value, 0f, 1f, null);
+
+        /// <summary>Slider row; <paramref name="text"/> = value shown on the right (null = percent).</summary>
+        private float Slider(string label, float value, float min, float max, string text)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Label(label, labelStyle, GUILayout.Width(300));
+            GUILayout.Label(label, labelStyle, GUILayout.Width(LabelWidth));
             GUILayout.BeginVertical();
             GUILayout.Space(18);
-            float v = GUILayout.HorizontalSlider(value, 0f, 1f, GUILayout.Width(180));
+            float v = GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(200));
             GUILayout.EndVertical();
-            GUILayout.Label(Mathf.RoundToInt(v * 100f) + "%", valueStyle, GUILayout.Width(70));
+            GUILayout.Label(text ?? Mathf.RoundToInt(v * 100f) + "%", valueStyle, GUILayout.Width(80));
             GUILayout.EndHorizontal();
             return v;
         }
@@ -475,7 +577,16 @@ namespace CatCircuit
             if (ui != null) titleStyle.font = ui;
 
             // The game's name is long, so the title menu uses a slightly smaller heading.
-            heroStyle = new GUIStyle(titleStyle) { fontSize = 38 };
+            heroStyle = new GUIStyle(titleStyle) { fontSize = 76 };
+            heroShadowStyle = new GUIStyle(heroStyle);
+            heroShadowStyle.normal.textColor = new Color(0f, 0f, 0f, 0.65f);
+            subtitleStyle = new GUIStyle(titleStyle) { fontSize = 28, fontStyle = FontStyle.Normal };
+            subtitleStyle.normal.textColor = new Color(0.85f, 0.88f, 0.95f);
+
+            titleOverlayTex = Solid(new Color(0.02f, 0.03f, 0.06f, 0.78f));
+            wireTex = Solid(new Color(0.75f, 0.8f, 0.9f, 1f));
+            dotTex = Solid(new Color(1f, 0.85f, 0.3f, 1f));
+            glowTex = Glow(64);
 
             buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 26, alignment = TextAnchor.MiddleCenter };
             buttonStyle.normal.background = buttonTex;
@@ -493,6 +604,7 @@ namespace CatCircuit
             valueStyle.normal.textColor = new Color(1f, 0.85f, 0.35f);
             smallStyle = new GUIStyle(labelStyle) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
             smallStyle.normal.textColor = new Color(0.65f, 0.67f, 0.72f);
+            versionStyle = new GUIStyle(smallStyle) { alignment = TextAnchor.MiddleLeft, wordWrap = false };
             smallStyle.wordWrap = true;
 
             smallButtonStyle = new GUIStyle(buttonStyle) { fontSize = 22 };
@@ -501,6 +613,22 @@ namespace CatCircuit
             fieldStyle = new GUIStyle(GUI.skin.textField) { fontSize = 26, alignment = TextAnchor.MiddleCenter };
             fieldStyle.normal.textColor = fieldStyle.focused.textColor = Color.white;
             if (ui != null) fieldStyle.font = ui;
+        }
+
+        /// <summary>White round spot that fades out to the edge (tinted with GUI.color for the LED glow).</summary>
+        private static Texture2D Glow(int size)
+        {
+            var t = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            float r = size * 0.5f;
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float d = Mathf.Sqrt((x + 0.5f - r) * (x + 0.5f - r) + (y + 0.5f - r) * (y + 0.5f - r)) / r;
+                    float a = Mathf.Clamp01(1f - d);
+                    t.SetPixel(x, y, new Color(1f, 1f, 1f, a * a));
+                }
+            t.Apply();
+            return t;
         }
 
         private static Texture2D Solid(Color c)

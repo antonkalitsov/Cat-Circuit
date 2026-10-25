@@ -117,6 +117,7 @@ public class UIManager : MonoBehaviour
         TextBackdrop b = text.GetComponent<TextBackdrop>();
         if (b == null) b = text.gameObject.AddComponent<TextBackdrop>();
         b.Configure(backgroundColor, padding, false);
+        b.enabled = GameSettings.TextBackgrounds;   // Настройки ▸ Фон зад текстовете
         return b;
     }
 

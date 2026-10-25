@@ -4,8 +4,8 @@ using UnityEngine.InputSystem;
 namespace CatCircuit
 {
     /// <summary>
-    /// F3 shows / hides a small FPS read-out in the bottom-left corner (for checking school laptops).
-    /// Off by default. Hidden = it only checks the F3 key; the text is rebuilt twice a second, not every frame.
+    /// F3 (or Настройки ▸ Показвай FPS) shows / hides a small FPS read-out in the bottom-left corner
+    /// (for checking school laptops). Off by default, remembered. Hidden = it only checks the F3 key; the text is rebuilt twice a second, not every frame.
     /// Creates itself when the game starts – nothing to place in scenes.
     /// </summary>
     public class FpsCounter : MonoBehaviour
@@ -29,17 +29,22 @@ namespace CatCircuit
             DontDestroyOnLoad(go);
             instance = go.AddComponent<FpsCounter>();
             instance.useGUILayout = false;
+            instance.visible = GameSettings.ShowFps;
+        }
+
+        /// <summary>Shown / hidden from the settings page (Показвай FPS) or with F3.</summary>
+        public static void SetVisible(bool show)
+        {
+            if (instance == null || instance.visible == show) return;
+            instance.visible = show;
+            instance.smoothedDelta = 0f;
+            instance.timer = UpdateInterval;
         }
 
         private void Update()
         {
             Keyboard kb = Keyboard.current;
-            if (kb != null && kb.f3Key.wasPressedThisFrame)
-            {
-                visible = !visible;
-                smoothedDelta = 0f;
-                timer = UpdateInterval;
-            }
+            if (kb != null && kb.f3Key.wasPressedThisFrame) GameSettings.ShowFps = !visible;
             if (!visible) return;
 
             float dt = Time.unscaledDeltaTime;

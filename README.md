@@ -14,6 +14,8 @@ The game is in Bulgarian.
 
 ▶ **[Watch the gameplay video on YouTube](https://youtu.be/FGRVMovFv8E)**
 
+🎮 **[Play in the browser on itch.io](https://antonkalitsov.itch.io/cat-circuit)**
+
 ## Screenshots
 
 | The village (hub) | House 3: Ohm's law | House 5: CircuitScript terminal |

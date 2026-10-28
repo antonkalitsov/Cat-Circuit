@@ -8,6 +8,18 @@ code is turned into a live 3D circuit on the floor, with glowing wires and LEDs 
 
 The game is in Bulgarian.
 
+## Video
+
+[![CatCircuit gameplay video](https://img.youtube.com/vi/FGRVMovFv8E/hqdefault.jpg)](https://youtu.be/FGRVMovFv8E)
+
+▶ **[Watch the gameplay video on YouTube](https://youtu.be/FGRVMovFv8E)**
+
+## Screenshots
+
+| The village (hub) | House 3: Ohm's law | House 5: CircuitScript terminal |
+|---|---|---|
+| ![Village hub with the House 1 marker](Docs/media/village.jpg) | ![House 3 resistor puzzle](Docs/media/house3-resistors.jpg) | ![Code terminal where the player writes a circuit](Docs/media/code-terminal.jpg) |
+
 ## Features
 
 - **Five houses, five lessons**
